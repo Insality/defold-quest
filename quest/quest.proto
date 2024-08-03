@@ -1,0 +1,13 @@
+syntax = "proto3"
+
+package quest
+
+message state {
+	message quest_progress {
+		repeated int32 progress = 1;
+		bool is_active = 2;
+		uint32 start_time = 3;
+	}
+	map<string, quest_progress> current = 1;
+	repeated string completed = 2;
+}

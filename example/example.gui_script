@@ -1,0 +1,5 @@
+local quest = require("quest.quest")
+
+function init(self)
+	quest.init()
+end

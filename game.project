@@ -18,6 +18,7 @@ publisher = Insality
 developer = Maksim Tuprikov, Insality
 dependencies#0 = https://github.com/britzl/deftest/archive/master.zip
 dependencies#1 = https://github.com/Insality/defold-event/archive/refs/tags/5.zip
+dependencies#2 = https://github.com/Insality/defold-token/archive/refs/tags/1.zip
 
 [library]
 include_dirs = quest

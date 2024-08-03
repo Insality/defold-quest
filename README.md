@@ -104,7 +104,7 @@ quest.on_quest_start -- event (quest_id, quest_config)
 quest.on_quest_completed -- event (quest_id, quest_config)
 quest.on_quest_progress -- event (quest_id, quest_config, delta, total, task_index)
 quest.on_quest_task_completed -- event (quest_id, quest_config, task_index)
-quest.is_can_start -- event (quest_id, quest_config):
+quest.is_can_start -- event (quest_id, quest_config): boolean
 quest.is_can_complete -- event (quest_id, quest_config): boolean
 quest.is_can_event -- event (quest_id, quest_config): boolean
 

@@ -48,10 +48,15 @@ M.is_can_event = event.create()
 
 
 ---Persist data between game sessions
----@type quest.state
+---@class quest.state
+---@field current table<string, quest.quest_progress>
+---@field completed table<string, boolean>
 M.state = nil
 
----@type quest.runtime_state
+---@class quest.runtime_state
+---@field is_started boolean
+---@field can_be_started table<string, boolean>
+---@field quest_relative_map table<string, string[]>|nil
 M.runtime = nil
 
 function M.reset_state()
@@ -70,7 +75,7 @@ end
 M.reset_state()
 
 
----@param logger_instance quest.logger|nil
+---@param logger_instance quest.logger|table|nil
 function M.set_logger(logger_instance)
 	quest_internal.logger = logger_instance or quest_internal.empty_logger
 end

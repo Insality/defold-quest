@@ -1,64 +1,85 @@
 local event = require("event.event")
 local quest_internal = require("quest.quest_internal")
 
+---The Defold Quest module.
+---Use this module to track tasks in your game.
+---You can create quests, start them, complete them, and track their progress.
+---@class quest
 local M = {}
 
 -- Module bindings --
 
+---Triggered when a quest is registered and now able to receive events.
+---Callback is fun(quest_id: string, quest_config: quest.config)
 ---@class quest.event.quest_register: event
----@field trigger fun(_, quest_id: string, quest_config: quest.quest)
----@field subscribe fun(_, callback: fun(quest_id: string, quest_config: quest.quest), _)
+---@field trigger fun(_, quest_id: string, quest_config: quest.config)
+---@field subscribe fun(_, callback: fun(quest_id: string, quest_config: quest.config), _)
 M.on_quest_register = event.create()
 
+---Triggered when a quest is started.
+---Callback is fun(quest_id: string, quest_config: quest.config)
 ---@class quest.event.quest_start: event
----@field trigger fun(_, quest_id: string, quest_config: quest.quest)
----@field subscribe fun(_, callback: fun(quest_id: string, quest_config: quest.quest), _)
+---@field trigger fun(_, quest_id: string, quest_config: quest.config)
+---@field subscribe fun(_, callback: fun(quest_id: string, quest_config: quest.config), _)
 M.on_quest_start = event.create()
 
----@class quest.event.quest_end: event
----@field trigger fun(_, quest_id: string, quest_config: quest.quest)
----@field subscribe fun(_, callback: fun(quest_id: string, quest_config: quest.quest), _)
+---Triggered when a quest is completed.
+---Callback is fun(quest_id: string, quest_config: quest.config)
+---@class quest.event.quest_completed: event
+---@field trigger fun(_, quest_id: string, quest_config: quest.config)
+---@field subscribe fun(_, callback: fun(quest_id: string, quest_config: quest.config), _)
 M.on_quest_completed = event.create()
 
+---Triggered when a quest progress is updated.
+---Callback is fun(quest_id: string, quest_config: quest.quest, delta: number, total: number, task_index: number)
 ---@class quest.event.quest_progress: event
----@field trigger fun(_, quest_id: string, quest_config: quest.quest, delta: number, total: number, task_index: number)
----@field subscribe fun(_, callback: fun(quest_id: string, quest_config: quest.quest, delta: number, total: number, task_index: number), _)
+---@field trigger fun(_, quest_id: string, quest_config: quest.config, delta: number, total: number, task_index: number)
+---@field subscribe fun(_, callback: fun(quest_id: string, quest_config: quest.config, delta: number, total: number, task_index: number), _)
 M.on_quest_progress = event.create()
 
----@class quest.event.quest_task_complete: event
----@field trigger fun(_, quest_id: string, quest_config: quest.quest, task_index: number)
----@field subscribe fun(_, callback: fun(quest_id: string, quest_config: quest.quest, task_index: number), _)
+---Triggered when a quest task is completed.
+---Callback is fun(quest_id: string, quest_config: quest.quest, task_index: number)
+---@class quest.event.quest_task_completed: event
+---@field trigger fun(_, quest_id: string, quest_config: quest.config, task_index: number)
+---@field subscribe fun(_, callback: fun(quest_id: string, quest_config: quest.config, task_index: number), _)
 M.on_quest_task_completed = event.create()
 
+---Triggered when a quest can be started.
+---Callback is fun(quest_id: string, quest_config: quest.config): boolean
 ---@class quest.event.is_can_start: event
----@field trigger fun(_, quest_id: string, quest_config: quest.quest): boolean
----@field subscribe fun(_, callback: fun(quest_id: string, quest_config: quest.quest): boolean, _)
+---@field trigger fun(_, quest_id: string, quest_config: quest.config): boolean
+---@field subscribe fun(_, callback: fun(quest_id: string, quest_config: quest.config): boolean, _)
 M.is_can_start = event.create()
 
+---Triggered when a quest can be completed.
+---Callback is fun(quest_id: string, quest_config: quest.config): boolean
 ---@class quest.event.is_can_complete: event
----@field trigger fun(_, quest_id: string, quest_config: quest.quest): boolean
----@field subscribe fun(_, callback: fun(quest_id: string, quest_config: quest.quest): boolean, _)
+---@field trigger fun(_, quest_id: string, quest_config: quest.config): boolean
+---@field subscribe fun(_, callback: fun(quest_id: string, quest_config: quest.config): boolean, _)
 M.is_can_complete = event.create()
 
+---Triggered when a quest can be processed.
+---Callback is fun(quest_id: string, quest_config: quest.config): boolean
 ---@class quest.event.is_can_event: event
----@field trigger fun(_, quest_id: string, quest_config: quest.quest): boolean
----@field subscribe fun(_, callback: fun(quest_id: string, quest_config: quest.quest): boolean, _)
+---@field trigger fun(_, quest_id: string, quest_config: quest.config): boolean
+---@field subscribe fun(_, callback: fun(quest_id: string, quest_config: quest.config): boolean, _)
 M.is_can_event = event.create()
-
-
 
 ---Persist data between game sessions
 ---@class quest.state
----@field current table<string, quest.quest_progress>
+---@field current table<string, quest.progress>
 ---@field completed table<string, boolean>
 M.state = nil
 
+---Runtime state of the quest system.
+---@private
 ---@class quest.runtime_state
 ---@field is_started boolean
 ---@field can_be_started table<string, boolean>
 ---@field quest_relative_map table<string, string[]>|nil
 M.runtime = nil
 
+---Reset quest state, probably you want to use it in case of game reload
 function M.reset_state()
 	M.state = {
 		current = {},
@@ -75,24 +96,29 @@ end
 M.reset_state()
 
 
+---Customize the logging mechanism used by Quest Module. You can use **Defold Log** library or provide a custom logger.
 ---@param logger_instance quest.logger|table|nil
 function M.set_logger(logger_instance)
 	quest_internal.logger = logger_instance or quest_internal.empty_logger
 end
 
 
+---Get quests state
+---@return quest.state
 local function get_quests_state()
 	return M.state
 end
 
 
 ---Get quests config
----@return table<string, quest.quest>
+---@return table<string, quest.config>
 local function get_quests_data()
 	return quest_internal.QUESTS_DATA
 end
 
 
+---Get total quests count in quests config
+---@return number Total quests count
 function M.get_quests_count()
 	local count = 0
 	for _ in pairs(get_quests_data()) do
@@ -104,13 +130,15 @@ end
 
 
 ---Get quest config by id
----@param quest_id string
----@return quest.quest
+---@param quest_id string Quest id
+---@return quest.config
 local function get_quest_config(quest_id)
 	return get_quests_data()[quest_id]
 end
 
 
+---Make relative quests map
+---@return table<string, string[]> quests_table Relative quests map
 local function make_relative_quests_map()
 	local quests_data = get_quests_data()
 	local map = {}
@@ -128,7 +156,10 @@ local function make_relative_quests_map()
 end
 
 
-local function is_quests_ok(quests_list)
+---Check if all quests in the list are completed
+---@param quests_list string[] Quests list
+---@return boolean
+local function is_all_quests_completed(quests_list)
 	if not quests_list then
 		return true
 	end
@@ -148,19 +179,30 @@ end
 
 
 ---All requirements is satisfied for start quest
+---@param quest_id string Quest id
+---@return boolean
 local function is_available(quest_id)
 	local quest_config = get_quest_config(quest_id)
 
 	return not M.is_completed(quest_id) and
-				is_quests_ok(quest_config.required_quests)
+				is_all_quests_completed(quest_config.required_quests)
 end
 
 
+---Quests can be not started, but catch all progress events.
+---So quest can be completed, when it will be started with a already completed required quests.
+---@param quest_id string Quest id
+---@return boolean
 local function is_catch_offline(quest_id)
-	return not M.is_completed(quest_id) and get_quests_data()[quest_id].events_offline
+	local not_completed = not M.is_completed(quest_id)
+	local catch_offline = get_quests_data()[quest_id].events_offline
+	return not not (not_completed and catch_offline)
 end
 
 
+---Check if all tasks of quest are completed
+---@param quest_id string Quest id to check
+---@return boolean True if all tasks are completed
 local function is_tasks_completed(quest_id)
 	local quest_config = get_quest_config(quest_id)
 	local quests = get_quests_state().current[quest_id]
@@ -178,12 +220,15 @@ local function is_tasks_completed(quest_id)
 end
 
 
+---Check if quest can be started
+---@param quest_id string Quest id to check
+---@return boolean is_can_be_started True if quest can be started
 local function can_be_started_quest(quest_id)
 	local quest_config = get_quest_config(quest_id)
 
 	local is_completed = M.is_completed(quest_id)
 	local is_active = M.is_active(quest_id)
-	local quests_ok = is_quests_ok(quest_config.required_quests)
+	local quests_ok = is_all_quests_completed(quest_config.required_quests)
 	return not is_completed and not is_active and quests_ok
 end
 
@@ -216,11 +261,7 @@ local function on_complete_quest_update_started_list(quest_id)
 	local can_be_started = M.runtime.can_be_started
 	local relative_quests = M.runtime.quest_relative_map
 
-	if not relative_quests then
-		return
-	end
-
-	if not relative_quests[quest_id] then
+	if not relative_quests or not relative_quests[quest_id] then
 		return
 	end
 
@@ -239,6 +280,7 @@ end
 
 
 ---Register quest to catch events even it not started
+---@param quest_id string
 local function register_quest(quest_id)
 	local quests = get_quests_state()
 	local quest_config = get_quest_config(quest_id)
@@ -247,7 +289,7 @@ local function register_quest(quest_id)
 		return
 	end
 
-	---@type quest.quest_progress
+	---@type quest.progress
 	local quest_progress = {
 		progress = {},
 		is_active = false,
@@ -276,6 +318,7 @@ local function clean_unexisting_quests()
 end
 
 
+---Used to setup initial quest progress in the state
 local function migrate_quests_data()
 	local current = get_quests_state().current
 	for quest_id, quest in pairs(current) do
@@ -371,11 +414,11 @@ end
 
 
 ---Apply event to quest
----@param quest_id string
----@param quest quest.quest_progress
----@param action string
----@param object string|nil
----@param amount number|nil
+---@param quest_id string Quest id to apply event
+---@param quest quest.progress Quest progress
+---@param action string Event action
+---@param object string|nil Event object
+---@param amount number|nil Event amount
 local function apply_event(quest_id, quest, action, object, amount)
 	object = object or ""
 	amount = amount or 1
@@ -438,7 +481,7 @@ end
 
 ---Get current active quests
 ---@param category string|nil
----@return table<string, quest.quest_progress>
+---@return table<string, quest.progress>
 function M.get_current(category)
 	local quests = get_quests_state().current
 	local result = {}
@@ -460,17 +503,33 @@ end
 
 
 ---Get completed quests map
+---@param category string|nil Optional category filter
 ---@return table<string, boolean> Map of completed quests
-function M.get_completed()
-	-- TODO add category filter
-	return get_quests_state().completed
+function M.get_completed(category)
+	local quests = get_quests_state()
+
+	if not category then
+		return quests.completed
+	end
+
+	local result = {}
+	local quests_data = get_quests_data()
+
+	for quest_id, _ in pairs(quests.completed) do
+		local quest_config = quests_data[quest_id]
+		if quest_config and quest_config.category == category then
+			result[quest_id] = true
+		end
+	end
+
+	return result
 end
 
 
 ---Check if there is quests in current with
 ---pointer action and object
----@param action string
----@param object string|nil
+---@param action string Action to check
+---@param object string|nil Object to check
 ---@return boolean
 function M.is_current_with_task(action, object)
 	local quests = get_quests_state().current
@@ -499,7 +558,7 @@ end
 
 ---Check quest is completed
 ---@param quest_id string
----@return boolean Quest completed state
+---@return boolean is_completed Quest completed state
 function M.is_completed(quest_id)
 	local quests = get_quests_state()
 	return quest_internal.contains(quests.completed, quest_id) --[[@as boolean]]
@@ -561,14 +620,14 @@ function M.complete_quest(quest_id)
 end
 
 
----Force complete quest
+---Force complete quest, without checking conditions
 ---@param quest_id string Quest id
 function M.force_complete_quest(quest_id)
 	finish_quest(quest_id)
 end
 
 
----Reset quets progress, only on current quests
+---Reset quest progress
 ---@param quest_id string Quest id
 function M.reset_progress(quest_id)
 	local quests = get_quests_state()
@@ -588,7 +647,7 @@ end
 
 ---Get quest config by id
 ---@param quest_id string Quest id
----@return quest.quest
+---@return quest.config
 function M.get_quest_config(quest_id)
 	return get_quest_config(quest_id)
 end
@@ -631,7 +690,8 @@ end
 
 
 ---Init quest system
----@param quest_config_or_path table|string Path to quest config. Example: "/resources/quests.json"
+---After init the quest system can trigger events, so you should subscribe to events before init
+---@param quest_config_or_path table<string, quest.config>|string Path to quest config. Example: "/resources/quests.json"
 function M.init(quest_config_or_path)
 	quest_internal.load_config(quest_config_or_path)
 

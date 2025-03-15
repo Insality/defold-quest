@@ -1,6 +1,6 @@
 local WALLET_ID = "wallet"
 
----@type table<string, quest.quest>
+---@type table<string, quest.config>
 local QUEST_DATA = {
 	["quest_collect_1"] = {
 		autostart = true,

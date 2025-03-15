@@ -1,30 +1,31 @@
 local M = {}
 
----@class quest.quest_progress
----@field progress number[] @Quest progress
----@field is_active boolean @Is quest started to earn quest events
----@field start_time number @Quest start time in seconds since epoch
+---Describes a quest progress data, used to save quest progress
+---@class quest.progress
+---@field progress number[] Quest progress
+---@field is_active boolean Is quest started to earn quest events
+---@field start_time number Quest start time in seconds since epoch
 
----@class quest.quest
----@field tasks quest.task[] @List of tasks to complete
----@field required_quests string|string[]|nil @List of required quests
----@field category string|nil @Used for filtering quests
----@field events_offline boolean|nil @If true, the quest events will be stored and processed even quest is not active
----@field autostart boolean|nil @If true, the quest will be started automatically after all requirements are met
----@field autofinish boolean|nil @If true, the quest will be finished automatically after all tasks are completed
----@field repeatable boolean|nil @If true, the quest will be not stored in the completed list
----@field use_max_task_value boolean|nil @If true, the maximum value of the task is used instead of the sum of all quest events
+---Contains a quest config required to describe a quest
+---@class quest.config
+---@field tasks quest.task[] List of tasks to complete
+---@field required_quests string[]|nil List of required quests
+---@field category string|nil Used for filtering quests
+---@field events_offline boolean|nil If true, the quest events will be stored and processed even quest is not active
+---@field autostart boolean|nil If true, the quest will be started automatically after all requirements are met
+---@field autofinish boolean|nil If true, the quest will be finished automatically after all tasks are completed
+---@field repeatable boolean|nil If true, the quest will be not stored in the completed list
+---@field use_max_task_value boolean|nil If true, the maximum value of the task is used instead of the sum of all quest events
 
 ---@class quest.tokens
 ---@field tokens table<string, number>
 
+---Describes a task for the quest
 ---@class quest.task
----@field action string
----@field object string|nil
----@field required number|nil @Default 1
----@field initial number|nil @Default 0
----@field param1 string|nil
----@field param2 string|nil
+---@field action string Action to perform to complete the task. Example: "destroy" or "collect"
+---@field object string|nil Object to specify the task, example: "enemy" or "money"
+---@field required number|nil Required amount of the object to complete the task. Example: 100
+---@field initial number|nil Initial amount of the object. Example: 0
 
 ---@class quest.logger
 ---@field trace fun(logger: quest.logger, message: string, data: any|nil)
@@ -34,7 +35,7 @@ local M = {}
 ---@field error fun(logger: quest.logger, message: string, data: any|nil)
 
 ---Quests Data
----@type table<string, quest.quest>
+---@type table<string, quest.config>
 M.QUESTS_DATA = {}
 
 --- Use empty function to save a bit of memory
@@ -109,8 +110,8 @@ end
 
 
 ---Load quest config from file or table
----@param config_or_path string|table
----@return boolean @True if success
+---@param config_or_path string|table<string, quest.config> Quest config or path to the config file
+---@return boolean True if success
 function M.load_config(config_or_path)
 	if type(config_or_path) == "string" then
 		local config = M.load_json(config_or_path)

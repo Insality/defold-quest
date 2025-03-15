@@ -1,4 +1,4 @@
----@type table<string, quest.quest>
+---@type table<string, quest.config>
 local QUEST_DATA = {
 	["quest_collect_1"] = {
 		autostart = true,
@@ -45,7 +45,6 @@ local QUEST_DATA = {
 		},
 	}
 }
-
 
 return function()
 	describe("Defold Quest", function()

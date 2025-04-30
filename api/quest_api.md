@@ -6,8 +6,8 @@ The Defold Quest module.
 Use this module to track tasks in your game.
 You can create quests, start them, complete them, and track their progress.
 
-
 ## Functions
+
 - [reset_state](#reset_state)
 - [set_logger](#set_logger)
 - [get_quests_count](#get_quests_count)
@@ -28,8 +28,8 @@ You can create quests, start them, complete them, and track their progress.
 - [init](#init)
 - [update_quests](#update_quests)
 
-
 ## Fields
+
 - [on_quest_register](#on_quest_register)
 - [on_quest_start](#on_quest_start)
 - [on_quest_completed](#on_quest_completed)
@@ -304,35 +304,27 @@ Update quests list
 ## Fields
 <a name="on_quest_register"></a>
 - **on_quest_register** (_unknown_): Triggered when a quest is registered and now able to receive events.
-Callback is fun(quest_id: string, quest_config: quest.config)
 
 <a name="on_quest_start"></a>
 - **on_quest_start** (_unknown_): Triggered when a quest is started.
-Callback is fun(quest_id: string, quest_config: quest.config)
 
 <a name="on_quest_completed"></a>
 - **on_quest_completed** (_unknown_): Triggered when a quest is completed.
-Callback is fun(quest_id: string, quest_config: quest.config)
 
 <a name="on_quest_progress"></a>
 - **on_quest_progress** (_unknown_): Triggered when a quest progress is updated.
-Callback is fun(quest_id: string, quest_config: quest.quest, delta: number, total: number, task_index: number)
 
 <a name="on_quest_task_completed"></a>
 - **on_quest_task_completed** (_unknown_): Triggered when a quest task is completed.
-Callback is fun(quest_id: string, quest_config: quest.quest, task_index: number)
 
 <a name="is_can_start"></a>
 - **is_can_start** (_unknown_): Triggered when a quest can be started.
-Callback is fun(quest_id: string, quest_config: quest.config): boolean
 
 <a name="is_can_complete"></a>
 - **is_can_complete** (_unknown_): Triggered when a quest can be completed.
-Callback is fun(quest_id: string, quest_config: quest.config): boolean
 
 <a name="is_can_event"></a>
 - **is_can_event** (_unknown_): Triggered when a quest can be processed.
-Callback is fun(quest_id: string, quest_config: quest.config): boolean
 
 <a name="state"></a>
 - **state** (_nil_): Persist data between game sessions

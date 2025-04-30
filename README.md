@@ -33,7 +33,7 @@ Open your `game.project` file and add the following line to the dependencies fie
 **[Defold Event](https://github.com/Insality/defold-event)**
 
 ```
-https://github.com/Insality/defold-event/archive/refs/tags/5.zip
+https://github.com/Insality/defold-event/archive/refs/tags/11.zip
 ```
 
 **[Defold Quest](https://github.com/Insality/defold-quest/archive/refs/tags/1.zip)**
@@ -53,42 +53,6 @@ After that, select `Project ▸ Fetch Libraries` to update [library dependencies
 | HTML5            | **3.91 KB**  |
 | Desktop / Mobile | **7.57 KB**  |
 
-
-
-### Quest Configuration File
-
-Create a configuration file for the Quest module.. Place your configuration file inside your [custom resources folder](https://defold.com/manuals/project-settings/#custom-resources) to ensure they are included in the build.
-
-The configuration file should be a JSON file with the following structure:
-
-```json
-{
-	"001_hidden": {
-		"autostart": true,
-		"autofinish": true,
-		"tasks": [
-			{ "action": "complete_cell", "object": "141" }
-		]
-	},
-	"002_destroy_them_all": {
-		"category": "quest",
-		"autostart": true,
-		"autofinish": true,
-		"required_quests": [ "001_hidden" ],
-		"tasks": [
-			{ "action": "destroy_object", "object": "tree", "required": 10 }
-		]
-	}
-}
-```
-
-> Note: for more quest fields check the `annotations.lua` to see the available properties.
-
-When you have created the configuration file, you can initialize the Quest module with the following code:
-
-```lua
-quest.init("/resources/quest_config.json")
-```
 
 ## API Reference
 

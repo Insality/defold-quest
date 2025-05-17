@@ -1,5 +1,6 @@
 local event = require("event.event")
 local quest_internal = require("quest.quest_internal")
+local quest_debug_page = require("quest.quest_debug_page")
 
 ---The Defold Quest module.
 ---Use this module to track tasks in your game.
@@ -79,7 +80,7 @@ M.state = nil
 ---@field quest_relative_map table<string, string[]>|nil
 M.runtime = nil
 
----Reset quest state, probably you want to use it in case of game reload
+---Reset Module quest state, probably you want to use it only in case of soft game reload
 function M.reset_state()
 	M.state = {
 		current = {},
@@ -241,7 +242,7 @@ local function create_can_be_started_list()
 
 	for quest_id, quest in pairs(quest_config) do
 		if can_be_started_quest(quest_id) then
-			table.insert(can_be_started, quest_id)
+			can_be_started[quest_id] = true
 		end
 	end
 end
@@ -249,14 +250,17 @@ end
 
 local function remove_from_started_list(quest_id)
 	local can_be_started = M.runtime.can_be_started
-
-	local index = quest_internal.contains(can_be_started, quest_id)
-	if index and type(index) == "number" then
-		table.remove(can_be_started, index)
+	if not can_be_started then
+		quest_internal.logger:debug("Quest is already not in can be started list", quest_id)
+		return
 	end
+
+	can_be_started[quest_id] = nil
 end
 
 
+---Update can be started list
+---@param quest_id string Quest id
 local function on_complete_quest_update_started_list(quest_id)
 	local can_be_started = M.runtime.can_be_started
 	local relative_quests = M.runtime.quest_relative_map
@@ -267,14 +271,14 @@ local function on_complete_quest_update_started_list(quest_id)
 
 	for i = 1, #relative_quests[quest_id] do
 		local q = relative_quests[quest_id][i]
-		if can_be_started_quest(q) and not quest_internal.contains(can_be_started) then
-			table.insert(can_be_started, q)
+		if can_be_started_quest(q) and not can_be_started[q] then
+			can_be_started[q] = true
 		end
 	end
 
 	-- Update repeatable quests
-	if can_be_started_quest(quest_id) and not quest_internal.contains(can_be_started) then
-		table.insert(can_be_started, quest_id)
+	if can_be_started_quest(quest_id) and not can_be_started[quest_id] then
+		can_be_started[quest_id] = true
 	end
 end
 
@@ -402,8 +406,7 @@ local function update_quests_list()
 	end
 
 	local can_be_started = M.runtime.can_be_started
-	for i = #can_be_started, 1, -1 do
-		local quest_id = can_be_started[i]
+	for quest_id, _ in pairs(can_be_started) do
 		local quest = quests_data[quest_id]
 
 		if quest.autostart then
@@ -415,11 +418,11 @@ end
 
 ---Apply event to quest
 ---@param quest_id string Quest id to apply event
----@param quest quest.progress Quest progress
+---@param quest_progress quest.progress Quest progress
 ---@param action string Event action
 ---@param object string|nil Event object
 ---@param amount number|nil Event amount
-local function apply_event(quest_id, quest, action, object, amount)
+local function apply_event(quest_id, quest_progress, action, object, amount)
 	object = object or ""
 	amount = amount or 1
 
@@ -430,12 +433,12 @@ local function apply_event(quest_id, quest, action, object, amount)
 		local task_data = quest_config.tasks[task_index]
 		local required = task_data.required or 1
 		local match_action = task_data.action == action
-		local match_object = (task_data.object == object or task_data.object == "")
+		local match_object = (task_data.object == object or task_data.object == "" or task_data.object == nil)
 
 		if match_action and match_object then
 			is_updated = true
 
-			local prev_value = quest.progress[task_index]
+			local prev_value = quest_progress.progress[task_index]
 			local task_value
 			if quest_config.use_max_task_value then
 				task_value = math.max(prev_value, amount)
@@ -443,19 +446,19 @@ local function apply_event(quest_id, quest, action, object, amount)
 				task_value = prev_value + amount
 			end
 
-			quest.progress[task_index] = quest_internal.clamp(task_value, 0, required)
-			local delta = quest.progress[task_index] - prev_value
+			quest_progress.progress[task_index] = quest_internal.clamp(task_value, 0, required)
+			local delta = quest_progress.progress[task_index] - prev_value
 
-			M.on_quest_progress:trigger(quest_id, quest_config, delta, quest.progress[task_index], task_index)
+			M.on_quest_progress:trigger(quest_id, quest_config, delta, quest_progress.progress[task_index], task_index)
 
 			quest_internal.logger:debug("Quest progress updated", {
 				quest_id = quest_id,
 				task_index = task_index,
 				delta = delta,
-				total = quest.progress[task_index]
+				total = quest_progress.progress[task_index]
 			})
 
-			if quest.progress[task_index] == required then
+			if quest_progress.progress[task_index] == required then
 				M.on_quest_task_completed:trigger(quest_id, quest_config, task_index)
 
 				quest_internal.logger:debug("Quest task completed", {
@@ -476,6 +479,20 @@ end
 function M.get_progress(quest_id)
 	local quests = get_quests_state()
 	return quests.current[quest_id] and quests.current[quest_id].progress or {}
+end
+
+
+function M.get_task_progress(quest_id, task_index)
+	local quests = get_quests_state()
+	-- Get in current or completed list
+	local is_completed = M.is_completed(quest_id)
+	if is_completed then
+		local quest_config = get_quest_config(quest_id)
+		return quest_config.tasks[task_index].required or 1
+	end
+
+	local quest_progress = quests.current[quest_id] and quests.current[quest_id].progress[task_index] or 0
+	return quest_progress
 end
 
 
@@ -509,7 +526,11 @@ function M.get_completed(category)
 	local quests = get_quests_state()
 
 	if not category then
-		return quests.completed
+		local result = {}
+		for index = 1, #quests.completed do
+			result[quests.completed[index]] = true
+		end
+		return result
 	end
 
 	local result = {}
@@ -518,6 +539,28 @@ function M.get_completed(category)
 	for quest_id, _ in pairs(quests.completed) do
 		local quest_config = quests_data[quest_id]
 		if quest_config and quest_config.category == category then
+			result[quest_id] = true
+		end
+	end
+
+	return result
+end
+
+
+---Get quests that can be started
+---@param category string|nil Optional category filter
+---@return table<string, boolean>
+function M.get_can_be_started(category)
+	local quests = M.runtime.can_be_started
+
+	if not category then
+		return quests
+	end
+
+	local result = {}
+	for quest_id, _ in pairs(quests) do
+		local quest_config = get_quest_config(quest_id)
+		if quest_config.category == category then
 			result[quest_id] = true
 		end
 	end
@@ -645,11 +688,50 @@ function M.reset_progress(quest_id)
 end
 
 
+---Reset quest
+---@param quest_id string Quest id
+function M.reset_quest(quest_id)
+	-- Clear from completed, and from current, and update it if it can be started
+	local quests = get_quests_state()
+	quests.current[quest_id] = nil
+
+	for index = 1, #quests.completed do
+		if quests.completed[index] == quest_id then
+			table.remove(quests.completed, index)
+		end
+	end
+
+	create_can_be_started_list()
+	register_offline_quests()
+	M.update_quests()
+
+	quest_internal.logger:debug("Quest reset", quest_id)
+end
+
+
 ---Get quest config by id
 ---@param quest_id string Quest id
 ---@return quest.config
 function M.get_quest_config(quest_id)
 	return get_quest_config(quest_id)
+end
+
+
+---Get quests data
+---@return table<string, quest.config>
+function M.get_quests_data()
+	return get_quests_data()
+end
+
+
+function M.clear_all_progress()
+	local quests = get_quests_state()
+	quests.current = {}
+	quests.completed = {}
+
+	create_can_be_started_list()
+	register_offline_quests()
+	M.update_quests()
 end
 
 
@@ -676,11 +758,42 @@ function M.quest_event(action, object, amount)
 		end
 	end
 
+	quest_internal.logger:debug("Quest event process", {
+		action = action,
+		object = object ~= "" and object or nil,
+		amount = amount,
+		is_applied = is_applied
+	})
+
+	if is_applied then
+		M.update_quests()
+	end
+end
+
+
+---Add progress to task
+---@param quest_id string Quest id
+---@param task_index number Task index
+---@param amount number Amount to add
+function M.add_task_progress(quest_id, task_index, amount)
+	local quests = get_quests_state()
+	local quest_progress = quests.current[quest_id]
+	if not quest_progress then
+		return
+	end
+
+	local quest_config = get_quest_config(quest_id)
+	local task_config = quest_config.tasks[task_index]
+	local action = task_config.action
+	local object = task_config.object
+	local is_applied = apply_event(quest_id, quest_progress, action, object, amount)
 	if is_applied then
 		M.update_quests()
 	end
 
-	quest_internal.logger:debug("Quest event process", {
+	quest_internal.logger:debug("Quest task progress added", {
+		quest_id = quest_id,
+		task_index = task_index,
 		action = action,
 		object = object,
 		amount = amount,
@@ -705,7 +818,12 @@ function M.init(quest_config_or_path)
 	register_offline_quests()
 	M.update_quests()
 
-	quest_internal.logger:info("Quest system initialized", { quest_count = M.get_quests_count() })
+	quest_internal.logger:info("Quest system initialized", {
+		total_quests = M.get_quests_count(),
+		active_quests = #M.get_current(),
+		completed_quests = #M.get_completed(),
+		can_be_started = #M.get_can_be_started()
+	})
 end
 
 
@@ -717,6 +835,13 @@ function M.update_quests()
 	end
 
 	update_quests_list()
+end
+
+
+---@param druid druid.instance
+---@param properties_panel druid.widget.properties_panel
+function M.render_properties_panel(druid, properties_panel)
+	quest_debug_page.render_properties_panel(M, druid, properties_panel)
 end
 
 

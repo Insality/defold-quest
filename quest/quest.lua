@@ -738,8 +738,8 @@ end
 ---Apply event to all current quests
 ---@param action string Event action
 ---@param object string|nil Event object
----@param amount number|nil Event amount
-function M.quest_event(action, object, amount)
+---@param amount number|nil Event amount default 1
+function M.event(action, object, amount)
 	local quests_data = get_quests_data()
 	local current = get_quests_state().current
 	local is_applied = false
@@ -802,10 +802,10 @@ function M.add_task_progress(quest_id, task_index, amount)
 end
 
 
----Init quest system
+---Start quest system
 ---After init the quest system can trigger events, so you should subscribe to events before init
 ---@param quest_config_or_path table<string, quest.config>|string Path to quest config. Example: "/resources/quests.json"
-function M.init(quest_config_or_path)
+function M.start_quests(quest_config_or_path)
 	quest_internal.load_config(quest_config_or_path)
 
 	clean_unexisting_quests()

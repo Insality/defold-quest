@@ -802,21 +802,27 @@ function M.add_task_progress(quest_id, task_index, amount)
 end
 
 
----Start quest system
----After init the quest system can trigger events, so you should subscribe to events before init
+---Load quests config
 ---@param quest_config_or_path table<string, quest.config>|string Path to quest config. Example: "/resources/quests.json"
-function M.start_quests(quest_config_or_path)
+function M.load_quests(quest_config_or_path)
 	quest_internal.load_config(quest_config_or_path)
-
 	clean_unexisting_quests()
 	migrate_quests_data()
 
-	M.runtime.is_started = true
 	M.runtime.quest_relative_map = make_relative_quests_map()
-
 	create_can_be_started_list()
+end
+
+
+---Start quest system
+---After init the quest system can trigger events, so you should subscribe to events before init
+function M.start_quests()
+	M.runtime.is_started = true
+
 	register_offline_quests()
 	M.update_quests()
+
+	M.on_quests_module_start:trigger()
 
 	quest_internal.logger:info("Quest system initialized", {
 		total_quests = M.get_quests_count(),

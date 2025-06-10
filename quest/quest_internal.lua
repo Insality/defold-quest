@@ -9,7 +9,7 @@ local M = {}
 ---Contains a quest config required to describe a quest
 ---@class quest.config
 ---@field tasks quest.task[] List of tasks to complete
----@field required_quests string[]|nil List of required quests
+---@field required_quests string[]|string|nil List of required quests or single required quest
 ---@field category string|nil Used for filtering quests
 ---@field events_offline boolean|nil If true, the quest events will be stored and processed even quest is not active
 ---@field autostart boolean|nil If true, the quest will be started automatically after all requirements are met
@@ -24,7 +24,7 @@ local M = {}
 ---@class quest.task
 ---@field action string Action to perform to complete the task. Example: "destroy" or "collect"
 ---@field object string|nil Object to specify the task, example: "enemy" or "money"
----@field required number|nil Required amount of the object to complete the task. Example: 100
+---@field required number|nil Required amount of the object to complete the task. Example: 100. Default: 1
 ---@field initial number|nil Initial amount of the object. Example: 0
 
 ---@class quest.logger
@@ -67,11 +67,11 @@ M.logger = M.empty_logger
 ---Check if table contains value
 ---@param t table
 ---@param value any
----@return number|boolean
+---@return boolean
 function M.contains(t, value)
 	for index = 1, #t do
 		if t[index] == value then
-			return index
+			return true
 		end
 	end
 
@@ -85,13 +85,10 @@ end
 ---@param max number
 ---@return number
 function M.clamp(value, min, max)
-	if value < min then
-		return min
-	elseif value > max then
-		return max
+	if min and max and min > max then
+		min, max = max, min
 	end
-
-	return value
+	return math.min(max or value, math.max(min or value, value))
 end
 
 

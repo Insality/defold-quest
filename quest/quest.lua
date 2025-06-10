@@ -146,9 +146,16 @@ local function make_relative_quests_map()
 
 	for quest_id, quest in pairs(quests_data) do
 		if quest.required_quests then
-			for i = 1, #quest.required_quests do
-				map[quest.required_quests[i]] = map[quest.required_quests[i]] or {}
-				table.insert(map[quest.required_quests[i]], quest_id)
+			-- Handle single string case
+			if type(quest.required_quests) == "string" then
+				map[quest.required_quests] = map[quest.required_quests] or {}
+				table.insert(map[quest.required_quests], quest_id)
+			else
+				-- Handle array case
+				for i = 1, #quest.required_quests do
+					map[quest.required_quests[i]] = map[quest.required_quests[i]] or {}
+					table.insert(map[quest.required_quests[i]], quest_id)
+				end
 			end
 		end
 	end
@@ -158,7 +165,7 @@ end
 
 
 ---Check if all quests in the list are completed
----@param quests_list string[] Quests list
+---@param quests_list string[]|string|nil Quests list or single quest
 ---@return boolean
 local function is_all_quests_completed(quests_list)
 	if not quests_list then
@@ -167,15 +174,19 @@ local function is_all_quests_completed(quests_list)
 
 	local quests = get_quests_state()
 
-	local is_ok = true
+	-- Handle single string case
+	if type(quests_list) == "string" then
+		return quest_internal.contains(quests.completed, quests_list)
+	end
+
+	-- Handle array case
 	for i = 1, #quests_list do
 		if not quest_internal.contains(quests.completed, quests_list[i]) then
-			is_ok = false
-			break
+			return false
 		end
 	end
 
-	return is_ok
+	return true
 end
 
 
@@ -185,8 +196,7 @@ end
 local function is_available(quest_id)
 	local quest_config = get_quest_config(quest_id)
 
-	return not M.is_completed(quest_id) and
-				is_all_quests_completed(quest_config.required_quests)
+	return not M.is_completed(quest_id) and is_all_quests_completed(quest_config.required_quests)
 end
 
 
@@ -821,8 +831,6 @@ function M.start_quests()
 
 	register_offline_quests()
 	M.update_quests()
-
-	M.on_quests_module_start:trigger()
 
 	quest_internal.logger:info("Quest system initialized", {
 		total_quests = M.get_quests_count(),

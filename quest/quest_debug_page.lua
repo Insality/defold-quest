@@ -106,10 +106,7 @@ function M.render_active_quests_page(quest, properties_panel)
 
 	for quest_id, quest_progress in pairs(current_quests) do
 		properties_panel:add_button(function(button)
-			local quest_config = quest.get_quest_config(quest_id)
-			local quest_name = quest_config and quest_config.name or quest_id
-
-			button:set_text_property(quest_name)
+			button:set_text_property(quest_id)
 			button:set_text_button("Details")
 			button.button.on_click:subscribe(function()
 				M.render_quest_details_page(quest, quest_id, properties_panel)
@@ -234,7 +231,7 @@ function M.render_quest_event_page(quest, action, properties_panel)
 	properties_panel:add_button(function(button)
 		button:set_text_property("Trigger")
 		button.button.on_click:subscribe(function()
-			quest.quest_event(action, object, amount)
+			quest.event(action, object, amount)
 			properties_panel:set_dirty()
 		end)
 	end)
@@ -310,15 +307,20 @@ function M.render_quest_details_page(quest, quest_id, properties_panel)
 	end)
 
 	-- Required quests
-	if quest_config.required_quests and #quest_config.required_quests > 0 then
+	local required_quests = quest_config.required_quests
+	if type(required_quests) == "string" then
+		required_quests = { required_quests }
+	end
+
+	if required_quests and #required_quests > 0 then
 		properties_panel:add_text(function(text)
 			text:set_text_property("Required Quests")
 
-			local required_quests = ""
-			for _, required_quest_id in ipairs(quest_config.required_quests) do
-				required_quests = required_quests .. required_quest_id .. ", "
+			local required_quests_string = ""
+			for _, required_quest_id in ipairs(required_quests) do
+				required_quests_string = required_quests_string .. required_quest_id .. ", "
 			end
-			text:set_text_value(required_quests)
+			text:set_text_value(required_quests_string)
 		end)
 	end
 

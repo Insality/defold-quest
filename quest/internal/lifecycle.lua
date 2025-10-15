@@ -1,8 +1,8 @@
-local state = require("quest.quest.state")
-local config = require("quest.quest.config")
-local validation = require("quest.quest.validation")
-local logger = require("quest.quest.logger")
-local quest_events = require("quest.quest.quest_events")
+local state = require("quest.internal.state")
+local config = require("quest.internal.config")
+local validation = require("quest.internal.validation")
+local logger = require("quest.internal.logger")
+local quest_events = require("quest.internal.quest_events")
 
 local M = {}
 
@@ -48,12 +48,7 @@ function M.register_quest(quest_id)
 		quests.current[quest_id].progress[i] = 0
 	end
 
-	quest_events.on_quest_event:push({
-		type = "register",
-		quest_id = quest_id,
-		quest_config = quest_config
-	})
-
+	quest_events.register(quest_id, quest_config)
 	logger:debug("Quest registered", quest_id)
 end
 
@@ -87,13 +82,7 @@ function M.start_quest(quest_id)
 
 	quests.current[quest_id].is_active = true
 	M.remove_from_started_list(quest_id)
-
-	quest_events.on_quest_event:push({
-		type = "start",
-		quest_id = quest_id,
-		quest_config = quest_config
-	})
-
+	quest_events.start(quest_id, quest_config)
 	logger:debug("Quest started", quest_id)
 
 	return true
@@ -121,12 +110,7 @@ function M.finish_quest(quest_id)
 		table.insert(quests.completed, quest_id)
 	end
 
-	quest_events.on_quest_event:push({
-		type = "completed",
-		quest_id = quest_id,
-		quest_config = quest_config
-	})
-
+	quest_events.completed(quest_id, quest_config)
 	logger:debug("Quest completed", quest_id)
 
 	M.update_can_be_started_list_on_complete(quest_id)
@@ -214,7 +198,4 @@ function M.reset_runtime_state()
 end
 
 
-
-
 return M
-

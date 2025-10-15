@@ -1,8 +1,8 @@
-local utils = require("quest.quest.utils")
-local state = require("quest.quest.state")
-local config = require("quest.quest.config")
-local logger = require("quest.quest.logger")
-local quest_events = require("quest.quest.quest_events")
+local utils = require("quest.internal.utils")
+local state = require("quest.internal.state")
+local config = require("quest.internal.config")
+local logger = require("quest.internal.logger")
+local quest_events = require("quest.internal.quest_events")
 
 local M = {}
 
@@ -40,15 +40,7 @@ function M.apply_event(quest_id, quest_progress, action, object, amount)
 
 			quest_progress.progress[task_index] = utils.clamp(task_value, 0, required)
 			local delta = quest_progress.progress[task_index] - prev_value
-
-			quest_events.on_quest_event:push({
-				type = "progress",
-				quest_id = quest_id,
-				quest_config = quest_config,
-				delta = delta,
-				total = quest_progress.progress[task_index],
-				task_index = task_index
-			})
+			quest_events.progress(quest_id, quest_config, delta, quest_progress.progress[task_index], task_index)
 
 			logger:debug("Quest progress updated", utils.table_to_string({
 				quest_id = quest_id,
@@ -58,12 +50,7 @@ function M.apply_event(quest_id, quest_progress, action, object, amount)
 			}))
 
 			if quest_progress.progress[task_index] == required then
-				quest_events.on_quest_event:push({
-					type = "task_completed",
-					quest_id = quest_id,
-					quest_config = quest_config,
-					task_index = task_index
-				})
+				quest_events.task_completed(quest_id, quest_config, task_index)
 
 				logger:debug("Quest task completed", utils.table_to_string({
 					quest_id = quest_id,

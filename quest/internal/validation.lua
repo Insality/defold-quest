@@ -1,6 +1,6 @@
-local utils = require("quest.quest.utils")
-local state = require("quest.quest.state")
-local config = require("quest.quest.config")
+local utils = require("quest.internal.utils")
+local state = require("quest.internal.state")
+local config = require("quest.internal.config")
 
 local M = {}
 

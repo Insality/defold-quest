@@ -207,6 +207,13 @@ function M.register_offline_quests()
 end
 
 
+---Reset runtime state variables
+function M.reset_runtime_state()
+	can_be_started = {}
+	quest_relative_map = nil
+end
+
+
 
 
 return M

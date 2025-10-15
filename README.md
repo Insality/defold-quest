@@ -9,7 +9,7 @@
 
 # Disclaimer
 
-The library in development stage. May be not fully tested and README may be not full. If you have any questions, please, create an issue. This library is an adoptation of [Quest](https://github.com/Insality/defold-eva/blob/master/eva/modules/quest.lua) module from my [Defold-Eva](https://github.com/Insality/defold-eva) library.
+The library in development stage. May be not fully tested and README may be not full. If you have any questions, please, create an issue. This library is an adoptation of [Quest](https://github.com/Insality/defold-eva/blob/master/eva/modules/quests.lua) module from my [Defold-Eva](https://github.com/Insality/defold-eva) library.
 
 
 # Quest

@@ -140,9 +140,7 @@ end
 function M.event(action, object, amount)
 	local is_can_event_callback = nil
 	if not M.is_can_event:is_empty() then
-		is_can_event_callback = function(quest_id, quest_config)
-			return M.is_can_event:trigger(quest_id, quest_config)
-		end
+		is_can_event_callback = M.is_can_event
 	end
 
 	local is_applied = quest_progress.process_event(action, object, amount, is_can_event_callback)
@@ -479,6 +477,7 @@ end
 ---Reset Module quest state, probably you want to use it only in case of soft game reload
 function M.reset_state()
 	state.reset_state()
+	lifecycle.reset_runtime_state()
 	M.on_quest_event:clear()
 	M.is_can_start:clear()
 	M.is_can_complete:clear()
@@ -500,7 +499,6 @@ function M.get_quests_count()
 end
 
 
--- Internal functions
 ---Update quests lifecycle by processing autostart and autofinish quests.
 ---This function recursively processes quest state changes until no more changes occur.
 ---It handles quest completion and starting based on quest configuration and validation.

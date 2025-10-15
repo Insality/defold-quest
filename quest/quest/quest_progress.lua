@@ -81,7 +81,7 @@ end
 ---@param action string Event action
 ---@param object string|nil Event object
 ---@param amount number|nil Event amount default 1
----@param is_can_event_callback (fun(quest_id: string, quest_config: quest.config): boolean)|nil Callback to check if event can be processed
+---@param is_can_event_callback quest.event.is_can_event|nil Callback to check if event can be processed
 ---@return boolean is_applied True if event was applied to at least one quest
 function M.process_event(action, object, amount, is_can_event_callback)
 	local quests_data = config.get_quests_data()

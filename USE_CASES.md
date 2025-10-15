@@ -44,3 +44,44 @@ function init(self)
 	quest.init(quest_state)
 end
 ```
+
+## Extend Quest Config
+
+You can extend quest config by using the `quest.config` class to fullfill the annotations.
+
+```lua
+---@class quest.config
+---@field reward table<string, amount> Reward table
+```
+
+Inside your quest config file you free to use any data
+```lua
+return {
+	["tutorial_menu"] = {
+		tasks = { { action = "click", object = "menu" } }
+		reward = { gold = 100 }
+	}
+}
+```
+
+
+## Add additional conditions to quest
+
+You can add additional conditions to quest by using the `quest.is_can_event` event.
+
+```lua
+quest.is_can_event:subscribe(function(quest_id, quest_config)
+	-- Any custom checks of quest event processing
+	return true
+end)
+
+quest.is_can_start:subscribe(function(quest_id, quest_config)
+	-- Any custom checks of quest can be started
+	return true
+end)
+
+quest.is_can_complete:subscribe(function(quest_id, quest_config)
+	-- Any custom checks of quest can be completed
+	return true
+end)
+```

@@ -494,7 +494,7 @@ end
 ---3. Recursively call itself if any changes occurred
 ---@private
 function M.update_quests()
-	local should_continue = lifecycle.update_quests_list()
+	local should_continue = false
 
 	-- Complete autofinish quests with validation
 	local current = state.get_state().current

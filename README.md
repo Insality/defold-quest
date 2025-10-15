@@ -71,13 +71,13 @@ quest.is_can_start -- event(quest_id: string, quest_config: quest.config): boole
 quest.is_can_complete -- event(quest_id: string, quest_config: quest.config): boolean
 quest.is_can_event -- event(quest_id: string, quest_config: quest.config): boolean
 
+-- Save and load state, before init
+quest.set_state(external_state)
+quest.get_state()
+
 -- Initialize quest system
 quest.init([quest_config_or_path])
 quest.add_quests(quest_config_or_path)
-
--- Save and load state
-quest.set_state(external_state)
-quest.get_state()
 
 -- Trigger quest event
 quest.event(action, [object], [amount])

@@ -72,11 +72,17 @@ end
 
 ---Start quest
 ---@param quest_id string
+---@return boolean is_started Quest started state
 function M.start_quest(quest_id)
 	local quest_config = config.get_quest_config(quest_id)
 	local quests = state.get_state()
 	if not quests.current[quest_id] then
 		M.register_quest(quest_id)
+	end
+
+	if quests.current[quest_id].is_active then
+		logger:warn("Quest already started", quest_id)
+		return false
 	end
 
 	quests.current[quest_id].is_active = true
@@ -90,12 +96,7 @@ function M.start_quest(quest_id)
 
 	logger:debug("Quest started", quest_id)
 
-	if quest_config.autofinish then
-		-- Will be handled by update_quests_list
-		return true
-	end
-
-	return false
+	return true
 end
 
 
@@ -206,38 +207,6 @@ function M.register_offline_quests()
 end
 
 
----Update quests list - start/complete quests based on conditions
----@return boolean should_update_again True if we should call update again
-function M.update_quests_list()
-	local quests_data = config.get_quests_data()
-	local current = state.get_state().current
-	local should_update_again = false
-
-	-- Complete autofinish quests
-	for quest_id, quest in pairs(current) do
-		if quest.is_active and quests_data[quest_id].autofinish then
-			-- Check if we can complete (basic validation only)
-			-- Custom validation will be handled by the main quest module
-			local can_complete = validation.is_tasks_completed(quest_id)
-			if can_complete then
-				-- Don't finish directly - let the main quest module handle validation
-				-- This will be handled by the main quest module's update_quests function
-			end
-		end
-	end
-
-	-- Start autostart quests
-	for quest_id, _ in pairs(can_be_started) do
-		local quest = quests_data[quest_id]
-
-		if quest.autostart then
-			-- Don't start directly - let the main quest module handle validation
-			-- This will be handled by the main quest module's update_quests function
-		end
-	end
-
-	return should_update_again
-end
 
 
 return M

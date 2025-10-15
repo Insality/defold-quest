@@ -16,6 +16,8 @@ The library in development stage. May be not fully tested and README may be not 
 
 **Quest** - module is a comprehensive system for managing quests in a game. It allows for the registration, tracking, and completion of quests, with various events and callbacks to handle quest-related activities.
 
+Quest here is a set of tasks that player needs to complete to complete the quest. Just trigger in a required place `quest.event("kill", "enemy")` and all logic will be handled automatically.
+
 
 ## Features
 
@@ -33,7 +35,7 @@ Open your `game.project` file and add the following line to the dependencies fie
 **[Defold Event](https://github.com/Insality/defold-event)**
 
 ```
-https://github.com/Insality/defold-event/archive/refs/tags/11.zip
+https://github.com/Insality/defold-event/archive/refs/tags/13.zip
 ```
 
 **[Defold Quest](https://github.com/Insality/defold-quest/archive/refs/tags/1.zip)**
@@ -59,35 +61,57 @@ After that, select `Project ▸ Fetch Libraries` to update [library dependencies
 ### Quick API Reference
 
 ```lua
-quest.init(quest_config_path)
-quest.reset_state()
+--- quest.event_data: { type: quest.event_type, quest_id: string, quest_config: quest.config, event_data: quest.event_data }
+--- quest.event_type: "register"|"start"|"progress"|"task_completed"|"completed"
 
--- Events
-quest.on_quest_register -- event (quest_id, quest_config)
-quest.on_quest_start -- event (quest_id, quest_config)
-quest.on_quest_completed -- event (quest_id, quest_config)
-quest.on_quest_progress -- event (quest_id, quest_config, delta, total, task_index)
-quest.on_quest_task_completed -- event (quest_id, quest_config, task_index)
-quest.is_can_start -- event (quest_id, quest_config): boolean
-quest.is_can_complete -- event (quest_id, quest_config): boolean
-quest.is_can_event -- event (quest_id, quest_config): boolean
+local quest = require("quest.quest")
 
-quest.quest_event(action, object, amount)
-quest.get_current(category)
-quest.get_progress(quest_id)
-quest.get_completed(category)
-quest.is_active(quest_id)
+quest.on_quest_event -- queue(event_data: quest.event_data): boolean
+quest.is_can_start -- event(quest_id: string, quest_config: quest.config): boolean
+quest.is_can_complete -- event(quest_id: string, quest_config: quest.config): boolean
+quest.is_can_event -- event(quest_id: string, quest_config: quest.config): boolean
+
+-- Initialize quest system
+quest.init([quest_config_or_path])
+quest.add_quests(quest_config_or_path)
+
+-- Save and load state
+quest.set_state(external_state)
+quest.get_state()
+
+-- Trigger quest event
+quest.event(action, [object], [amount])
+quest.add_task_progress(quest_id, task_index, amount)
+
+-- Check quest status
+quest.is_active([quest_id])
 quest.is_completed(quest_id)
-quest.is_current_with_task(action, object)
 quest.is_can_start_quest(quest_id)
-quest.start_quest(quest_id)
 quest.is_can_complete_quest(quest_id)
+quest.get_progress(quest_id)
+quest.get_task_progress(quest_id, task_index)
+
+-- Manage quests
+quest.start_quest(quest_id)
 quest.complete_quest(quest_id)
 quest.force_complete_quest(quest_id)
 quest.reset_progress(quest_id)
+quest.reset_quest(quest_id)
+quest.clear_all_progress()
+
+-- Get quests
+quest.get_current([category])
+quest.get_completed([category])
+quest.get_can_be_started([category])
 quest.get_quest_config(quest_id)
-quest.update_quests()
-quest.set_logger(logger_instance)
+quest.get_current_with_task(action, [object])
+
+-- System
+quest.set_logger([logger_instance])
+quest.reset_state()
+quest.get_quests_data()
+quest.get_quests_count()
+
 ```
 
 ### API Reference

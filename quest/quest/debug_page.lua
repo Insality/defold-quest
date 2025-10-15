@@ -1,3 +1,5 @@
+local utils = require("quest.quest.utils")
+
 local M = {}
 
 
@@ -17,7 +19,7 @@ function M.render_properties_panel(quest, druid, properties_panel)
 	-- Active quests
 	properties_panel:add_button(function(button)
 		local current_quests = quest.get_current()
-		local current_count = M.count_table_entries(current_quests)
+		local current_count = utils.count_table_entries(current_quests)
 		button:set_text_property("Active Quests")
 		button:set_text_button("View (" .. current_count .. ")")
 		button.button.on_click:subscribe(function()
@@ -28,7 +30,7 @@ function M.render_properties_panel(quest, druid, properties_panel)
 	-- Completed quests
 	properties_panel:add_button(function(button)
 		local completed_quests = quest.get_completed()
-		local completed_count = M.count_table_entries(completed_quests)
+		local completed_count = utils.count_table_entries(completed_quests)
 		button:set_text_property("Completed Quests")
 		button:set_text_button("View (" .. completed_count .. ")")
 		button.button.on_click:subscribe(function()
@@ -49,7 +51,7 @@ function M.render_properties_panel(quest, druid, properties_panel)
 	-- All quests
 	properties_panel:add_button(function(button)
 		button:set_text_property("All Quests")
-		button:set_text_button("View (" .. M.count_table_entries(quest.get_quests_data()) .. ")")
+		button:set_text_button("View (" .. utils.count_table_entries(quest.get_quests_data()) .. ")")
 		button.button.on_click:subscribe(function()
 			M.render_all_quests_page(quest, properties_panel)
 		end)
@@ -76,18 +78,6 @@ function M.render_properties_panel(quest, druid, properties_panel)
 end
 
 
----Helper function to count entries in a table
----@param t table
----@return number
-function M.count_table_entries(t)
-	local count = 0
-	for _ in pairs(t) do
-		count = count + 1
-	end
-	return count
-end
-
-
 ---Render the active quests page
 ---@param quest quest
 ---@param properties_panel druid.widget.properties_panel
@@ -96,7 +86,7 @@ function M.render_active_quests_page(quest, properties_panel)
 	properties_panel:set_header("Active Quests")
 
 	local current_quests = quest.get_current()
-	if M.count_table_entries(current_quests) == 0 then
+	if utils.count_table_entries(current_quests) == 0 then
 		properties_panel:add_text(function(text)
 			text:set_text_property("Info")
 			text:set_text_value("No active quests")
@@ -137,6 +127,7 @@ function M.add_render_quests(quest, quests, properties_panel)
 		end)
 	end
 end
+
 
 ---Render the completed quests page
 ---@param quest quest
@@ -329,7 +320,7 @@ function M.render_quest_details_page(quest, quest_id, properties_panel)
 		text:set_text_property("Tasks")
 
 		local tasks = quest_config.tasks
-		local tasks_count = M.count_table_entries(tasks)
+		local tasks_count = utils.count_table_entries(tasks)
 		local tasks_completed = 0
 
 		for task_index, task in ipairs(tasks) do
@@ -427,3 +418,4 @@ end
 
 
 return M
+

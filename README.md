@@ -116,7 +116,7 @@ quest.get_quests_count()
 
 ### API Reference
 
-Read the [API Reference](API_REFERENCE.md) file to see the full API documentation for the module.
+Read the [API Reference](api/quest_api.md) file to see the full API documentation for the module.
 
 ## Use Cases
 

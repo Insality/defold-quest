@@ -15,7 +15,7 @@ local quest = require("quest.quest")
 
 function init(self)
 	saver.init()
-	saver.bind_save_part("quest", quest.state)
+	saver.bind_save_part("quest", quest.get_state())
 
 	quest.init()
 end
@@ -28,13 +28,14 @@ local quest = require("quest.quest")
 
 local function save_quest_state()
 	-- Save a quest.state table as you wish
-	save_quest_state(quest.state)
+	save_quest_state(quest.get_state())
 end
 
 
 local function load_quest_state()
 	-- Load a quest.state table as you wish
-	return load_quest_state_from_save()
+	local saved_state = load_quest_state_from_save()
+	quest.set_state(saved_state)
 end
 
 
@@ -43,20 +44,3 @@ function init(self)
 	quest.init(quest_state)
 end
 ```
-
-
-## Custom Configuration
-- How to configure the module to fit your additional requirements
-
-## Use Defold-Quest with Defold-Token module
-- How to add requirements to quest start
-- How to add rewards from quests
-
-## Add your fields to quest data
-- How category can be used
-
-## Use quest as repetitive tasks
-- Examples and how to use quest as daily tasks
-
-## Use quest as game progression
-- How to use quest as game progression

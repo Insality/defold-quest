@@ -13,15 +13,16 @@ local M = {}
 
 
 ---@type quest.state
-local state = nil
+local state = {
+	current = {},
+	completed = {}
+}
 
 
 ---Reset Module quest state, probably you want to use it only in case of soft game reload
 function M.reset_state()
-	state = {
-		current = {},
-		completed = {}
-	}
+	state.current = {}
+	state.completed = {}
 end
 
 

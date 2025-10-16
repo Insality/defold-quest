@@ -81,6 +81,7 @@ function M.start_quest(quest_id)
 	end
 
 	quests.current[quest_id].is_active = true
+	quests.current[quest_id].start_time = socket.gettime()
 	M.remove_from_started_list(quest_id)
 	quest_events.start(quest_id, quest_config)
 	logger:debug("Quest started", quest_id)

@@ -66,7 +66,7 @@ end
 function M.is_catch_offline(quest_id)
 	local not_completed = not M.is_completed(quest_id)
 	local catch_offline = config.get_quests_data()[quest_id].events_offline
-	return not not (not_completed and catch_offline)
+	return (not_completed and catch_offline) and true or false
 end
 
 

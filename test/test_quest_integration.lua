@@ -40,7 +40,7 @@ return function()
 			token = require("token.token")
 
 			token.init()
-			token.create_container(WALLET_ID)
+			token.container(WALLET_ID)
 		end)
 
 		after(function()
@@ -49,45 +49,46 @@ return function()
 		end)
 
 		it("Should give rewards on quest completion", function()
-			-- Subscribe BEFORE init
+			quest.init(QUEST_DATA)
+			local wallet = token.container(WALLET_ID)
 			quest.on_quest_event:subscribe(function(event_data)
 				if event_data.type == "completed" and event_data.quest_config.reward then
-					token.add_many(WALLET_ID, event_data.quest_config.reward, "quest")
+					wallet:add_many(event_data.quest_config.reward, "quest")
 				end
 				return true  -- Mark event as handled
 			end)
 
-			quest.init(QUEST_DATA)
-
-			assert(token.get(WALLET_ID, "apple") == 0)
-			assert(token.get(WALLET_ID, "gold") == 0)
+			assert(wallet:get("apple") == 0)
+			assert(wallet:get("gold") == 0)
 
 			quest.event("get", "money", 10)
 
-			assert(token.get(WALLET_ID, "apple") == 1)
-			assert(token.get(WALLET_ID, "gold") == 50)
+			assert(wallet:get("apple") == 1)
+			assert(wallet:get("gold") == 50)
 		end)
 
 		it("Should handle quest chain with rewards", function()
 			quest.init(QUEST_DATA)
+			local wallet = token.container(WALLET_ID)
 			quest.on_quest_event:subscribe(function(event_data)
 				if event_data.type == "completed" and event_data.quest_config.reward then
-					token.add_many(WALLET_ID, event_data.quest_config.reward, "quest")
+					wallet:add_many(event_data.quest_config.reward, "quest")
 					return true  -- Mark event as handled
 				end
 			end)
 
 			-- Complete first quest
 			quest.event("get", "money", 10)
-			assert(token.get(WALLET_ID, "apple") == 1)
-			assert(token.get(WALLET_ID, "diamond") == 0)
+			assert(wallet:get("apple") == 1)
+			assert(wallet:get("diamond") == 0)
 
 			-- Complete second quest
 			quest.event("collect", "star", 5)
-			assert(token.get(WALLET_ID, "diamond") == 1)
+			assert(wallet:get("diamond") == 1)
 		end)
 
 		it("Should track progress with direct event calls", function()
+			local wallet = token.container(WALLET_ID)
 			local quest_data = {
 				["token_quest"] = {
 					autostart = true,
@@ -96,15 +97,15 @@ return function()
 					}
 				}
 			}
-
 			quest.init(quest_data)
 
+
 			-- Simulate token changes driving quest progress
-			token.add(WALLET_ID, "coin", 50, "gameplay")
+			wallet:add("coin", 50, "gameplay")
 			quest.event("collect", "coin", 50)
 			assert(quest.get_task_progress("token_quest", 1) == 50)
 
-			token.add(WALLET_ID, "coin", 30, "gameplay")
+			wallet:add("coin", 30, "gameplay")
 			quest.event("collect", "coin", 30)
 			assert(quest.get_task_progress("token_quest", 1) == 80)
 		end)
@@ -124,10 +125,11 @@ return function()
 				}
 			}
 
-			-- Subscribe BEFORE init
+			local wallet = token.container(WALLET_ID)
+
 			quest.on_quest_event:subscribe(function(event_data)
 				if event_data.type == "completed" and event_data.quest_config.reward then
-					token.add_many(WALLET_ID, event_data.quest_config.reward, "quest")
+					wallet:add_many(event_data.quest_config.reward, "quest")
 				end
 				return true  -- Mark event as handled
 			end)
@@ -137,15 +139,15 @@ return function()
 			-- Complete multiple times
 			quest.start_quest("repeatable_reward")
 			quest.event("win", "battle", 1)
-			assert(token.get(WALLET_ID, "exp") == 10)
+			assert(wallet:get("exp") == 10)
 
 			quest.start_quest("repeatable_reward")
 			quest.event("win", "battle", 1)
-			assert(token.get(WALLET_ID, "exp") == 20)
+			assert(wallet:get("exp") == 20)
 
 			quest.start_quest("repeatable_reward")
 			quest.event("win", "battle", 1)
-			assert(token.get(WALLET_ID, "exp") == 30)
+			assert(wallet:get("exp") == 30)
 		end)
 	end)
 end

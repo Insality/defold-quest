@@ -1,7 +1,7 @@
-local utils = require("quest.internal.utils")
-local state = require("quest.internal.state")
-local config = require("quest.internal.config")
-local logger = require("quest.internal.logger")
+local utils = require("quest.internal.quest_utils")
+local state = require("quest.internal.quest_state")
+local config = require("quest.internal.quest_config")
+local logger = require("quest.internal.quest_logger")
 local quest_events = require("quest.internal.quest_events")
 
 local M = {}
@@ -42,20 +42,20 @@ function M.apply_event(quest_id, quest_progress, action, object, amount)
 			local delta = quest_progress.progress[task_index] - prev_value
 			quest_events.progress(quest_id, quest_config, delta, quest_progress.progress[task_index], task_index)
 
-			logger:debug("Quest progress updated", utils.table_to_string({
+			logger:debug("Quest progress updated", {
 				quest_id = quest_id,
 				task_index = task_index,
 				delta = delta,
 				total = quest_progress.progress[task_index]
-			}))
+			})
 
 			if quest_progress.progress[task_index] == required then
 				quest_events.task_completed(quest_id, quest_config, task_index)
 
-				logger:debug("Quest task completed", utils.table_to_string({
+				logger:debug("Quest task completed", {
 					quest_id = quest_id,
 					task_index = task_index
-				}))
+				})
 			end
 		end
 	end
@@ -90,12 +90,12 @@ function M.process_event(action, object, amount, is_can_event_callback)
 		end
 	end
 
-	logger:debug("Quest event process", utils.table_to_string({
+	logger:debug("Quest event process", {
 		action = action,
 		object = object ~= "" and object or nil,
 		amount = amount,
 		is_applied = is_applied
-	}))
+	})
 
 	return is_applied
 end

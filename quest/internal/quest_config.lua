@@ -1,5 +1,5 @@
-local utils = require("quest.internal.utils")
-local logger = require("quest.internal.logger")
+local utils = require("quest.internal.quest_utils")
+local logger = require("quest.internal.quest_logger")
 
 ---Contains a quest config required to describe a quest
 ---@class quest.config

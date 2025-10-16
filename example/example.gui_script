@@ -1,5 +1,5 @@
 local druid = require("druid.druid")
-local quest_debug_page = require("quest.quest.debug_page")
+local quest_debug_page = require("quest.quest_debug_page")
 local properties_panel = require("druid.widget.properties_panel.properties_panel")
 
 local quest = require("quest.quest")

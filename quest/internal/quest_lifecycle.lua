@@ -1,7 +1,7 @@
-local state = require("quest.internal.state")
-local config = require("quest.internal.config")
-local validation = require("quest.internal.validation")
-local logger = require("quest.internal.logger")
+local state = require("quest.internal.quest_state")
+local config = require("quest.internal.quest_config")
+local validation = require("quest.internal.quest_validation")
+local logger = require("quest.internal.quest_logger")
 local quest_events = require("quest.internal.quest_events")
 
 local M = {}

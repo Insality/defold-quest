@@ -16,7 +16,7 @@ local M = {}
 
 ---Single queue for all quest events in proper order: register -> start -> progress -> task_completed -> completed
 ---@class quest.queue.quest_event: queue
----@field subscribe fun(_, callback: fun(event_data: quest.event_data), context: any): boolean?, _)
+---@field subscribe fun(_, callback: fun(event_data: quest.event_data):boolean?, context: any): boolean?, _)
 M.on_quest_event = queue.create()
 
 

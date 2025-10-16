@@ -1,13 +1,13 @@
 local event = require("event.event")
 
-local logger = require("quest.internal.logger")
-local state = require("quest.internal.state")
-local config = require("quest.internal.config")
-local validation = require("quest.internal.validation")
-local lifecycle = require("quest.internal.lifecycle")
+local logger = require("quest.internal.quest_logger")
+local state = require("quest.internal.quest_state")
+local config = require("quest.internal.quest_config")
+local validation = require("quest.internal.quest_validation")
+local lifecycle = require("quest.internal.quest_lifecycle")
 local quest_progress = require("quest.internal.quest_progress")
 local quest_events = require("quest.internal.quest_events")
-local utils = require("quest.internal.utils")
+local utils = require("quest.internal.quest_utils")
 
 ---The Defold Quest module.
 ---Use this module to track tasks in your game.
@@ -171,14 +171,14 @@ function M.add_task_progress(quest_id, task_index, amount)
 		M.update_quests()
 	end
 
-	logger:debug("Quest task progress added", utils.table_to_string({
+	logger:debug("Quest task progress added", {
 		quest_id = quest_id,
 		task_index = task_index,
 		action = action,
 		object = object,
 		amount = amount,
 		is_applied = is_applied
-	}))
+	})
 end
 
 

@@ -1,4 +1,4 @@
-local utils = require("quest.internal.utils")
+local utils = require("quest.internal.quest_utils")
 
 local M = {}
 

@@ -25,7 +25,13 @@ function M.clamp(value, min, max)
 	if min and max and min > max then
 		min, max = max, min
 	end
-	return math.min(max or value, math.max(min or value, value))
+	if min ~= nil and value < min then
+		return min
+	end
+	if max ~= nil and value > max then
+		return max
+	end
+	return value
 end
 
 

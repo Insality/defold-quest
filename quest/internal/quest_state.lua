@@ -1,7 +1,7 @@
 ---Persist data between game sessions
 ---@class quest.state
 ---@field current table<string, quest.progress> quest_id -> quest.progress
----@field completed table<string, boolean>
+---@field completed string[]
 
 ---Describes a quest progress data, used to save quest progress
 ---@class quest.progress

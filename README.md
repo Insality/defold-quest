@@ -16,7 +16,7 @@ The library in development stage. May be not fully tested and README may be not 
 
 **Quest** - module is a comprehensive system for managing quests in a game. It allows for the registration, tracking, and completion of quests, with various events and callbacks to handle quest-related activities.
 
-Quest here is a set of tasks that player needs to complete to complete the quest. Just trigger in a required place `quest.event("kill", "enemy")` and all logic will be handled automatically.
+Quest here is a set of tasks that player needs to complete the quest. Just trigger in a required place `quest.event("kill", "enemy")` and all logic will be handled automatically.
 
 
 ## Features

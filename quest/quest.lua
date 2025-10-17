@@ -1,14 +1,3 @@
-local event = require("event.event")
-
-local logger = require("quest.internal.quest_logger")
-local state = require("quest.internal.quest_state")
-local config = require("quest.internal.quest_config")
-local validation = require("quest.internal.quest_validation")
-local lifecycle = require("quest.internal.quest_lifecycle")
-local quest_progress = require("quest.internal.quest_progress")
-local quest_events = require("quest.internal.quest_events")
-local utils = require("quest.internal.quest_utils")
-
 ---The Defold Quest module.
 ---Use this module to track tasks in your game.
 ---You can add, start, complete and track quests progress.
@@ -40,7 +29,18 @@ local utils = require("quest.internal.quest_utils")
 ---quest.event("kill", "enemy") -- Apply kill enemy event
 ---local active = quest.get_current() -- Get all active quests
 ---```
----
+
+local event = require("event.event")
+
+local logger = require("quest.internal.quest_logger")
+local state = require("quest.internal.quest_state")
+local config = require("quest.internal.quest_config")
+local validation = require("quest.internal.quest_validation")
+local lifecycle = require("quest.internal.quest_lifecycle")
+local quest_progress = require("quest.internal.quest_progress")
+local quest_events = require("quest.internal.quest_events")
+local utils = require("quest.internal.quest_utils")
+
 ---@class quest
 local M = {}
 

@@ -18,20 +18,17 @@ end
 
 ---Clamp value between min and max
 ---@param value number
----@param min number
----@param max number
+---@param v1 number
+---@param v2 number
 ---@return number
-function M.clamp(value, min, max)
-	if min and max and min > max then
-		min, max = max, min
+function M.clamp(value, v1, v2)
+	v1 = v1 or -math.huge
+	v2 = v2 or math.huge
+	if v1 > v2 then
+		v1, v2 = v2, v1
 	end
-	if min ~= nil and value < min then
-		return min
-	end
-	if max ~= nil and value > max then
-		return max
-	end
-	return value
+
+	return math.max(v1, math.min(value, v2))
 end
 
 

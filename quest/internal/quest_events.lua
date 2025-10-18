@@ -1,3 +1,4 @@
+local event = require("event.event")
 local queue = require("event.queue")
 
 local M = {}
@@ -18,6 +19,42 @@ local M = {}
 ---@class quest.queue.quest_event: queue
 ---@field subscribe fun(_, callback: fun(event_data: quest.event_data):boolean?, context: any): boolean?, _)
 M.on_quest_event = queue.create()
+
+
+---Triggered when a quest can be started.
+---You can add additional conditions to the quest start validation.
+---Callback is fun(quest_id: string, quest_config: quest.config): boolean
+---@class quest.event.is_can_start: event
+---@field trigger fun(_, quest_id: string, quest_config: quest.config): boolean
+---@field subscribe fun(_, callback: fun(quest_id: string, quest_config: quest.config): boolean, _)
+M.is_can_start = event.create()
+
+
+---Triggered when a quest can be completed.
+---You can add additional conditions to the quest completion validation.
+---Callback is fun(quest_id: string, quest_config: quest.config): boolean
+---@class quest.event.is_can_complete: event
+---@field trigger fun(_, quest_id: string, quest_config: quest.config): boolean
+---@field subscribe fun(_, callback: fun(quest_id: string, quest_config: quest.config): boolean, _)
+M.is_can_complete = event.create()
+
+
+---Triggered when a quest can be processed.
+---You can add additional conditions to the quest event processing.
+---Callback is fun(quest_id: string, quest_config: quest.config): boolean
+---@class quest.event.is_can_event: event
+---@field trigger fun(_, quest_id: string, quest_config: quest.config): boolean
+---@field subscribe fun(_, callback: fun(quest_id: string, quest_config: quest.config): boolean, _)
+M.is_can_event = event.create()
+
+
+---Reset quest events state
+function M.reset_state()
+	M.on_quest_event:clear()
+	M.is_can_start:clear()
+	M.is_can_complete:clear()
+	M.is_can_event:clear()
+end
 
 
 ---Register quest event

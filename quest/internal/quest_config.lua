@@ -2,7 +2,7 @@ local utils = require("quest.internal.quest_utils")
 local logger = require("quest.internal.quest_logger")
 
 ---Contains a quest config required to describe a quest
----@class quest.config
+---@class quest.config: table
 ---@field tasks quest.task[] List of tasks to complete
 ---@field required_quests string[]|string|nil List of required quests or single required quest
 ---@field category string|nil Used for filtering quests

@@ -44,35 +44,10 @@ local utils = require("quest.internal.quest_utils")
 ---@class quest
 local M = {}
 
--- Quest event queue for UI notifications
 M.on_quest_event = quest_events.on_quest_event
-
-
----Triggered when a quest can be started.
----You can add additional conditions to the quest start validation.
----Callback is fun(quest_id: string, quest_config: quest.config): boolean
----@class quest.event.is_can_start: event
----@field trigger fun(_, quest_id: string, quest_config: quest.config): boolean
----@field subscribe fun(_, callback: fun(quest_id: string, quest_config: quest.config): boolean, _)
-M.is_can_start = event.create()
-
-
----Triggered when a quest can be completed.
----You can add additional conditions to the quest completion validation.
----Callback is fun(quest_id: string, quest_config: quest.config): boolean
----@class quest.event.is_can_complete: event
----@field trigger fun(_, quest_id: string, quest_config: quest.config): boolean
----@field subscribe fun(_, callback: fun(quest_id: string, quest_config: quest.config): boolean, _)
-M.is_can_complete = event.create()
-
-
----Triggered when a quest can be processed.
----You can add additional conditions to the quest event processing.
----Callback is fun(quest_id: string, quest_config: quest.config): boolean
----@class quest.event.is_can_event: event
----@field trigger fun(_, quest_id: string, quest_config: quest.config): boolean
----@field subscribe fun(_, callback: fun(quest_id: string, quest_config: quest.config): boolean, _)
-M.is_can_event = event.create()
+M.is_can_start = quest_events.is_can_start
+M.is_can_complete = quest_events.is_can_complete
+M.is_can_event = quest_events.is_can_event
 
 
 -- Save and load state, before init
@@ -208,7 +183,7 @@ function M.is_can_start_quest(quest_id)
 	end
 
 	local is_can_start_extra = true
-	if not M.is_can_start:is_empty() then
+	if not quest_events.is_can_start:is_empty() then
 		is_can_start_extra = M.is_can_start:trigger(quest_id, quest_config)
 	end
 
@@ -478,10 +453,7 @@ end
 function M.reset_state()
 	state.reset_state()
 	lifecycle.reset_runtime_state()
-	M.on_quest_event:clear()
-	M.is_can_start:clear()
-	M.is_can_complete:clear()
-	M.is_can_event:clear()
+	quest_events.reset_state()
 end
 
 

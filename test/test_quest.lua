@@ -20,7 +20,7 @@ local QUEST_DATA = {
 
 return function()
 	describe("Defold Quest - Core Functionality", function()
-		local quest = {}
+		local quest ---@type quest
 
 		before(function()
 			quest = require("quest.quest")

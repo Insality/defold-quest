@@ -1,5 +1,6 @@
 local quest = require("quest.quest")
 local utils = require("quest.internal.quest_utils")
+local property_quest_progress = require("quest.properties_panel.property_quest_progress")
 
 local M = {}
 
@@ -23,7 +24,7 @@ function M.render_properties_panel(druid, properties_panel)
 		button:set_text_property("Active Quests")
 		button:set_text_button("View (" .. current_count .. ")")
 		button.button.on_click:subscribe(function()
-			M.render_active_quests_page(quest, properties_panel)
+			M.render_active_quests_page(druid, properties_panel)
 		end)
 	end)
 
@@ -34,7 +35,7 @@ function M.render_properties_panel(druid, properties_panel)
 		button:set_text_property("Completed Quests")
 		button:set_text_button("View (" .. completed_count .. ")")
 		button.button.on_click:subscribe(function()
-			M.render_completed_quests_page(quest, properties_panel)
+			M.render_completed_quests_page(druid, properties_panel)
 		end)
 	end)
 
@@ -44,7 +45,7 @@ function M.render_properties_panel(druid, properties_panel)
 		button:set_text_property("Ready to start Quests")
 		button:set_text_button("View (" .. #can_be_started .. ")")
 		button.button.on_click:subscribe(function()
-			M.render_available_quests_page(quest, properties_panel)
+			M.render_available_quests_page(druid, properties_panel)
 		end)
 	end)
 
@@ -53,7 +54,7 @@ function M.render_properties_panel(druid, properties_panel)
 		button:set_text_property("All Quests")
 		button:set_text_button("View (" .. utils.count_table_entries(quest.get_quests_data()) .. ")")
 		button.button.on_click:subscribe(function()
-			M.render_all_quests_page(quest, properties_panel)
+			M.render_all_quests_page(druid, properties_panel)
 		end)
 	end)
 
@@ -62,7 +63,7 @@ function M.render_properties_panel(druid, properties_panel)
 		button:set_text_property("Quest Events")
 		button:set_text_button("View")
 		button.button.on_click:subscribe(function()
-			M.render_quest_events_page(quest, properties_panel)
+			M.render_quest_events_page(druid, properties_panel)
 		end)
 	end)
 
@@ -79,9 +80,9 @@ end
 
 
 ---Render the active quests page
----@param quest quest
+---@param druid druid.instance
 ---@param properties_panel druid.widget.properties_panel
-function M.render_active_quests_page(quest, properties_panel)
+function M.render_active_quests_page(druid, properties_panel)
 	properties_panel:next_scene()
 	properties_panel:set_header("Active Quests")
 
@@ -98,7 +99,7 @@ function M.render_active_quests_page(quest, properties_panel)
 		properties_panel:add_button_small(function(button)
 			button:set_text_property(quest_id)
 			button.button.on_click:subscribe(function()
-				M.render_quest_details_page(quest, quest_id, properties_panel)
+				M.render_quest_details_page(druid, quest_id, properties_panel)
 			end)
 		end)
 	end
@@ -106,10 +107,10 @@ end
 
 
 ---Render the quests page
----@param quest quest
+---@param druid druid.instance
 ---@param quests table<string, any>
 ---@param properties_panel druid.widget.properties_panel
-function M.add_render_quests(quest, quests, properties_panel)
+function M.add_render_quests(druid, quests, properties_panel)
 	local sorted_quests = {}
 	for quest_id, _ in pairs(quests) do
 		table.insert(sorted_quests, quest_id)
@@ -120,7 +121,7 @@ function M.add_render_quests(quest, quests, properties_panel)
 		properties_panel:add_button(function(button)
 			button:set_text_property(quest_id)
 			button.button.on_click:subscribe(function()
-				M.render_quest_details_page(quest, quest_id, properties_panel)
+				M.render_quest_details_page(druid, quest_id, properties_panel)
 			end)
 		end)
 	end
@@ -128,39 +129,39 @@ end
 
 
 ---Render the completed quests page
----@param quest quest
+---@param druid druid.instance
 ---@param properties_panel druid.widget.properties_panel
-function M.render_completed_quests_page(quest, properties_panel)
+function M.render_completed_quests_page(druid, properties_panel)
 	properties_panel:next_scene()
 	properties_panel:set_header("Completed Quests")
-	M.add_render_quests(quest, quest.get_completed(), properties_panel)
+	M.add_render_quests(druid, quest.get_completed(), properties_panel)
 end
 
 
 ---Render the available quests page
----@param quest quest
+---@param druid druid.instance
 ---@param properties_panel druid.widget.properties_panel
-function M.render_available_quests_page(quest, properties_panel)
+function M.render_available_quests_page(druid, properties_panel)
 	properties_panel:next_scene()
 	properties_panel:set_header("Available Quests")
-	M.add_render_quests(quest, quest.get_can_be_started(), properties_panel)
+	M.add_render_quests(druid, quest.get_can_be_started(), properties_panel)
 end
 
 
 ---Render the all quests page
----@param quest quest
+---@param druid druid.instance
 ---@param properties_panel druid.widget.properties_panel
-function M.render_all_quests_page(quest, properties_panel)
+function M.render_all_quests_page(druid, properties_panel)
 	properties_panel:next_scene()
 	properties_panel:set_header("All Quests")
-	M.add_render_quests(quest, quest.get_quests_data(), properties_panel)
+	M.add_render_quests(druid, quest.get_quests_data(), properties_panel)
 end
 
 
 ---Render the quest events page
----@param quest quest
+---@param druid druid.instance
 ---@param properties_panel druid.widget.properties_panel
-function M.render_quest_events_page(quest, properties_panel)
+function M.render_quest_events_page(druid, properties_panel)
 	properties_panel:next_scene()
 	properties_panel:set_header("Quest Events")
 
@@ -183,7 +184,7 @@ function M.render_quest_events_page(quest, properties_panel)
 			button:set_text_property(action)
 			button:set_text_button("Trigger")
 			button.button.on_click:subscribe(function()
-				M.render_quest_event_page(quest, action, properties_panel)
+				M.render_quest_event_page(druid, action, properties_panel)
 			end)
 		end)
 	end
@@ -191,10 +192,10 @@ end
 
 
 ---Render the quest event page
----@param quest quest
+---@param druid druid.instance
 ---@param action string
 ---@param properties_panel druid.widget.properties_panel
-function M.render_quest_event_page(quest, action, properties_panel)
+function M.render_quest_event_page(druid, action, properties_panel)
 	properties_panel:next_scene()
 	properties_panel:set_header("Quest Event: " .. action)
 
@@ -245,10 +246,10 @@ end
 
 
 ---Render the details page for a specific quest
----@param quest quest
+---@param druid druid.instance
 ---@param quest_id string
 ---@param properties_panel druid.widget.properties_panel
-function M.render_quest_details_page(quest, quest_id, properties_panel)
+function M.render_quest_details_page(druid, quest_id, properties_panel)
 	properties_panel:next_scene()
 	properties_panel:set_header("Quest: " .. quest_id)
 
@@ -304,18 +305,14 @@ function M.render_quest_details_page(quest, quest_id, properties_panel)
 	if required_quests and #required_quests > 0 then
 		properties_panel:add_text(function(text)
 			text:set_text_property("Required Quests")
-
-			local required_quests_string = ""
-			for _, required_quest_id in ipairs(required_quests) do
-				required_quests_string = required_quests_string .. required_quest_id .. ", "
-			end
-			text:set_text_value(required_quests_string)
+			text:set_text_value(table.concat(required_quests, ", "))
 		end)
 	end
 
 	-- Tasks
-	properties_panel:add_text(function(text)
-		text:set_text_property("Tasks")
+	properties_panel:add_widget(function()
+		local quest_progress = druid:new_widget(property_quest_progress, "property_quest_progress", "root")
+		quest_progress:set_text_property("Tasks")
 
 		local tasks = quest_config.tasks
 		local tasks_count = utils.count_table_entries(tasks)
@@ -328,21 +325,27 @@ function M.render_quest_details_page(quest, quest_id, properties_panel)
 			end
 		end
 
-		text:set_text_value(string.format("%d / %d", tasks_completed, tasks_count))
+		quest_progress:set_progress(tasks_completed, tasks_count)
+
+		return quest_progress
 	end)
 
 	for task_index, task in ipairs(quest_config.tasks) do
-		properties_panel:add_text(function(text)
+		properties_panel:add_widget(function()
+			local quest_progress = druid:new_widget(property_quest_progress, "property_quest_progress", "root")
+
 			local task_text = task.action or ""
 			if task.object then
 				task_text = task_text .. " " .. task.object
 			end
 
-			text:set_text_property(task_text)
+			quest_progress:set_text_property(task_text)
 
 			local task_progress = quest.get_task_progress(quest_id, task_index)
 			local required = task.required or 1
-			text:set_text_value(task_progress .. " / " .. required)
+			quest_progress:set_progress(task_progress, required)
+
+			return quest_progress
 		end)
 		properties_panel:add_button(function(button)
 			button:set_text_property("Add Progress")

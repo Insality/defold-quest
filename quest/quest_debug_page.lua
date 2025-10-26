@@ -1,12 +1,12 @@
+local quest = require("quest.quest")
 local utils = require("quest.internal.quest_utils")
 
 local M = {}
 
 
----@param quest quest
 ---@param druid druid.instance
 ---@param properties_panel druid.widget.properties_panel
-function M.render_properties_panel(quest, druid, properties_panel)
+function M.render_properties_panel(druid, properties_panel)
 	properties_panel:next_scene()
 	properties_panel:set_header("Quest Panel")
 
@@ -95,9 +95,8 @@ function M.render_active_quests_page(quest, properties_panel)
 	end
 
 	for quest_id, quest_progress in pairs(current_quests) do
-		properties_panel:add_button(function(button)
+		properties_panel:add_button_small(function(button)
 			button:set_text_property(quest_id)
-			button:set_text_button("Details")
 			button.button.on_click:subscribe(function()
 				M.render_quest_details_page(quest, quest_id, properties_panel)
 			end)
@@ -120,7 +119,6 @@ function M.add_render_quests(quest, quests, properties_panel)
 	for _, quest_id in ipairs(sorted_quests) do
 		properties_panel:add_button(function(button)
 			button:set_text_property(quest_id)
-			button:set_text_button("Inspect")
 			button.button.on_click:subscribe(function()
 				M.render_quest_details_page(quest, quest_id, properties_panel)
 			end)

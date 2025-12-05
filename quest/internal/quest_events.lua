@@ -17,7 +17,7 @@ local M = {}
 
 ---Single queue for all quest events in proper order: register -> start -> progress -> task_completed -> completed
 ---@class quest.queue.quest_event: queue
----@field subscribe fun(_, callback: fun(event_data: quest.event_data):boolean?, context: any): boolean?, _)
+---@field subscribe fun(_, callback: (fun(event_data: quest.event_data):boolean?), context: any): boolean?, _)
 M.on_quest_event = queue.create()
 
 
@@ -26,7 +26,7 @@ M.on_quest_event = queue.create()
 ---Callback is fun(quest_id: string, quest_config: quest.config): boolean
 ---@class quest.event.is_can_start: event
 ---@field trigger fun(_, quest_id: string, quest_config: quest.config): boolean
----@field subscribe fun(_, callback: fun(quest_id: string, quest_config: quest.config): boolean, _)
+---@field subscribe fun(_, callback: (fun(quest_id: string, quest_config: quest.config): boolean), _)
 M.is_can_start = event.create()
 
 
@@ -35,7 +35,7 @@ M.is_can_start = event.create()
 ---Callback is fun(quest_id: string, quest_config: quest.config): boolean
 ---@class quest.event.is_can_complete: event
 ---@field trigger fun(_, quest_id: string, quest_config: quest.config): boolean
----@field subscribe fun(_, callback: fun(quest_id: string, quest_config: quest.config): boolean, _)
+---@field subscribe fun(_, callback: (fun(quest_id: string, quest_config: quest.config): boolean), _)
 M.is_can_complete = event.create()
 
 
@@ -44,7 +44,7 @@ M.is_can_complete = event.create()
 ---Callback is fun(quest_id: string, quest_config: quest.config): boolean
 ---@class quest.event.is_can_event: event
 ---@field trigger fun(_, quest_id: string, quest_config: quest.config): boolean
----@field subscribe fun(_, callback: fun(quest_id: string, quest_config: quest.config): boolean, _)
+---@field subscribe fun(_, callback: (fun(quest_id: string, quest_config: quest.config): boolean), _)
 M.is_can_event = event.create()
 
 

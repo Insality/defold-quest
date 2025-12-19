@@ -30,8 +30,6 @@
 ---local active = quest.get_current() -- Get all active quests
 ---```
 
-local event = require("event.event")
-
 local logger = require("quest.internal.quest_logger")
 local state = require("quest.internal.quest_state")
 local config = require("quest.internal.quest_config")

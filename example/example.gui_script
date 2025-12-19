@@ -1,6 +1,6 @@
 local druid = require("druid.druid")
-local quest_debug_page = require("quest.quest_debug_page")
-local properties_panel = require("druid.widget.properties_panel.properties_panel")
+local quest_debug_page = require("widget.debug_page_quest.debug_page_quest")
+local properties_panel = require("widget.properties_panel.properties_panel")
 
 local quest = require("quest.quest")
 local quests = require("example.quests")
@@ -13,7 +13,7 @@ function init(self)
 		button:set_text_property("Quest Panel")
 		button:set_text_button("Open")
 		button.button.on_click:subscribe(function()
-			quest_debug_page.render_properties_panel(quest, self.druid, self.properties_panel)
+			quest_debug_page.render_properties_panel(self.druid, self.properties_panel)
 		end)
 	end)
 

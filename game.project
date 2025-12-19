@@ -1,5 +1,5 @@
 [bootstrap]
-main_collection = /test/test.collectionc
+main_collection = /example/example.collectionc
 
 [script]
 shared_state = 1
@@ -20,6 +20,7 @@ dependencies#0 = https://github.com/britzl/deftest/archive/master.zip
 dependencies#1 = https://github.com/Insality/defold-token/archive/refs/heads/develop.zip
 dependencies#2 = https://github.com/Insality/defold-event/archive/refs/tags/13.zip
 dependencies#3 = https://github.com/Insality/druid/archive/refs/heads/develop.zip
+dependencies#4 = https://github.com/Insality/asset-store/archive/refs/heads/main.zip
 
 [library]
 include_dirs = quest

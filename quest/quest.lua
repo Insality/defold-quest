@@ -1,496 +1,350 @@
-local event = require("event.event")
-local quest_internal = require("quest.quest_internal")
-
 ---The Defold Quest module.
 ---Use this module to track tasks in your game.
----You can create quests, start them, complete them, and track their progress.
+---You can add, start, complete and track quests progress.
+---
+---# Quest Status Lifecycle
+---
+---Quests go through different states during their lifecycle:
+---
+---## Quest States:
+---* **not_started**: Quest exists in config but hasn't been registered yet
+---* **registered**: Quest is registered and can receive events (if events_offline = true)
+---* **active**: Quest is started and actively earning progress from events
+---* **completed**: Quest has finished all tasks and is marked as completed
+---
+---## Quest Types:
+---* **autostart**: Quest automatically starts when requirements are met
+---* **autofinish**: Quest automatically completes when all tasks are done
+---* **repeatable**: Quest can be started again after completion (not stored in completed list)
+---* **events_offline**: Quest can receive events even when not active
+---
+---## Quest Status Meanings:
+---* **can_be_started**: Quest meets all requirements and is ready to start
+---* **active**: Quest is currently running and earning progress
+---* **completed**: Quest has finished and cannot be restarted (unless repeatable)
+---
+---# Usage Example:
+---```lua
+---quest.init(require("game.quests"))
+---quest.event("kill", "enemy") -- Apply kill enemy event
+---local active = quest.get_current() -- Get all active quests
+---```
+
+local logger = require("quest.internal.quest_logger")
+local state = require("quest.internal.quest_state")
+local config = require("quest.internal.quest_config")
+local validation = require("quest.internal.quest_validation")
+local lifecycle = require("quest.internal.quest_lifecycle")
+local quest_progress = require("quest.internal.quest_progress")
+local quest_events = require("quest.internal.quest_events")
+local utils = require("quest.internal.quest_utils")
+
 ---@class quest
 local M = {}
 
--- Module bindings --
-
----Triggered when a quest is registered and now able to receive events.
----Callback is fun(quest_id: string, quest_config: quest.config)
----@class quest.event.quest_register: event
----@field trigger fun(_, quest_id: string, quest_config: quest.config)
----@field subscribe fun(_, callback: fun(quest_id: string, quest_config: quest.config), _)
-M.on_quest_register = event.create()
-
----Triggered when a quest is started.
----Callback is fun(quest_id: string, quest_config: quest.config)
----@class quest.event.quest_start: event
----@field trigger fun(_, quest_id: string, quest_config: quest.config)
----@field subscribe fun(_, callback: fun(quest_id: string, quest_config: quest.config), _)
-M.on_quest_start = event.create()
-
----Triggered when a quest is completed.
----Callback is fun(quest_id: string, quest_config: quest.config)
----@class quest.event.quest_completed: event
----@field trigger fun(_, quest_id: string, quest_config: quest.config)
----@field subscribe fun(_, callback: fun(quest_id: string, quest_config: quest.config), _)
-M.on_quest_completed = event.create()
-
----Triggered when a quest progress is updated.
----Callback is fun(quest_id: string, quest_config: quest.quest, delta: number, total: number, task_index: number)
----@class quest.event.quest_progress: event
----@field trigger fun(_, quest_id: string, quest_config: quest.config, delta: number, total: number, task_index: number)
----@field subscribe fun(_, callback: fun(quest_id: string, quest_config: quest.config, delta: number, total: number, task_index: number), _)
-M.on_quest_progress = event.create()
-
----Triggered when a quest task is completed.
----Callback is fun(quest_id: string, quest_config: quest.quest, task_index: number)
----@class quest.event.quest_task_completed: event
----@field trigger fun(_, quest_id: string, quest_config: quest.config, task_index: number)
----@field subscribe fun(_, callback: fun(quest_id: string, quest_config: quest.config, task_index: number), _)
-M.on_quest_task_completed = event.create()
-
----Triggered when a quest can be started.
----Callback is fun(quest_id: string, quest_config: quest.config): boolean
----@class quest.event.is_can_start: event
----@field trigger fun(_, quest_id: string, quest_config: quest.config): boolean
----@field subscribe fun(_, callback: fun(quest_id: string, quest_config: quest.config): boolean, _)
-M.is_can_start = event.create()
-
----Triggered when a quest can be completed.
----Callback is fun(quest_id: string, quest_config: quest.config): boolean
----@class quest.event.is_can_complete: event
----@field trigger fun(_, quest_id: string, quest_config: quest.config): boolean
----@field subscribe fun(_, callback: fun(quest_id: string, quest_config: quest.config): boolean, _)
-M.is_can_complete = event.create()
-
----Triggered when a quest can be processed.
----Callback is fun(quest_id: string, quest_config: quest.config): boolean
----@class quest.event.is_can_event: event
----@field trigger fun(_, quest_id: string, quest_config: quest.config): boolean
----@field subscribe fun(_, callback: fun(quest_id: string, quest_config: quest.config): boolean, _)
-M.is_can_event = event.create()
-
----Persist data between game sessions
----@class quest.state
----@field current table<string, quest.progress>
----@field completed table<string, boolean>
-M.state = nil
-
----Runtime state of the quest system.
----@private
----@class quest.runtime_state
----@field is_started boolean
----@field can_be_started table<string, boolean>
----@field quest_relative_map table<string, string[]>|nil
-M.runtime = nil
-
----Reset quest state, probably you want to use it in case of game reload
-function M.reset_state()
-	M.state = {
-		current = {},
-		completed = {}
-	}
-
-	M.runtime = {
-		is_started = false,
-		can_be_started = {},
-		quest_relative_map = nil
-	}
-end
-
-M.reset_state()
+M.on_quest_event = quest_events.on_quest_event
+M.is_can_start = quest_events.is_can_start
+M.is_can_complete = quest_events.is_can_complete
+M.is_can_event = quest_events.is_can_event
 
 
----Customize the logging mechanism used by Quest Module. You can use **Defold Log** library or provide a custom logger.
----@param logger_instance quest.logger|table|nil
-function M.set_logger(logger_instance)
-	quest_internal.logger = logger_instance or quest_internal.empty_logger
+-- Save and load state, before init
+---Set state (for saving/loading)
+---@param external_state quest.state
+function M.set_state(external_state)
+	state.set_state(external_state)
 end
 
 
----Get quests state
+---Get state (for saving/loading)
 ---@return quest.state
-local function get_quests_state()
-	return M.state
+function M.get_state()
+	return state.get_state()
 end
 
 
----Get quests config
----@return table<string, quest.config>
-local function get_quests_data()
-	return quest_internal.QUESTS_DATA
+-- Initialize quest system
+---Initialize quest system with config and start processing quests
+---		quest.init()
+---		quest.init(require("game.quests"))
+---		quest.init("/resources/quests.json")
+---@param quest_config_or_path table<string, quest.config>|string|nil Path to quest config or config table. Can be nil to init without quests.
+function M.init(quest_config_or_path)
+	if quest_config_or_path then
+		M.add_quests(quest_config_or_path)
+	end
+
+	lifecycle.register_offline_quests()
+	M.update_quests()
+
+	logger:info("Quest system initialized", {
+		total_quests = M.get_quests_count(),
+		active_quests = utils.count_table_entries(M.get_current()),
+		completed_quests = #state.get_state().completed,
+		can_be_started = utils.count_table_entries(M.get_can_be_started())
+	})
 end
 
 
----Get total quests count in quests config
----@return number Total quests count
-function M.get_quests_count()
-	local count = 0
-	for _ in pairs(get_quests_data()) do
-		count = count + 1
-	end
+---Add quests to the system from config file or table
+---		quest.add_quests(require("game.quests"))
+---		quest.add_quests("/resources/quests.json")
+---@param quest_config_or_path table<string, quest.config>|string Lua table or path to quest config. Example: "/resources/quests.json"
+function M.add_quests(quest_config_or_path)
+	config.load_config(quest_config_or_path)
+	M.postprocess_quest_state()
 
-	return count
-end
-
-
----Get quest config by id
----@param quest_id string Quest id
----@return quest.config
-local function get_quest_config(quest_id)
-	return get_quests_data()[quest_id]
-end
-
-
----Make relative quests map
----@return table<string, string[]> quests_table Relative quests map
-local function make_relative_quests_map()
-	local quests_data = get_quests_data()
-	local map = {}
-
-	for quest_id, quest in pairs(quests_data) do
-		if quest.required_quests then
-			for i = 1, #quest.required_quests do
-				map[quest.required_quests[i]] = map[quest.required_quests[i]] or {}
-				table.insert(map[quest.required_quests[i]], quest_id)
-			end
-		end
-	end
-
-	return map
-end
-
-
----Check if all quests in the list are completed
----@param quests_list string[] Quests list
----@return boolean
-local function is_all_quests_completed(quests_list)
-	if not quests_list then
-		return true
-	end
-
-	local quests = get_quests_state()
-
-	local is_ok = true
-	for i = 1, #quests_list do
-		if not quest_internal.contains(quests.completed, quests_list[i]) then
-			is_ok = false
-			break
-		end
-	end
-
-	return is_ok
-end
-
-
----All requirements is satisfied for start quest
----@param quest_id string Quest id
----@return boolean
-local function is_available(quest_id)
-	local quest_config = get_quest_config(quest_id)
-
-	return not M.is_completed(quest_id) and
-				is_all_quests_completed(quest_config.required_quests)
-end
-
-
----Quests can be not started, but catch all progress events.
----So quest can be completed, when it will be started with a already completed required quests.
----@param quest_id string Quest id
----@return boolean
-local function is_catch_offline(quest_id)
-	local not_completed = not M.is_completed(quest_id)
-	local catch_offline = get_quests_data()[quest_id].events_offline
-	return not not (not_completed and catch_offline)
-end
-
-
----Check if all tasks of quest are completed
----@param quest_id string Quest id to check
----@return boolean True if all tasks are completed
-local function is_tasks_completed(quest_id)
-	local quest_config = get_quest_config(quest_id)
-	local quests = get_quests_state().current[quest_id]
-
-	for i = 1, #quest_config.tasks do
-		local required = quest_config.tasks[i].required or 1
-		local current = quests.progress[i]
-
-		if current < required then
-			return false
-		end
-	end
-
-	return true
-end
-
-
----Check if quest can be started
----@param quest_id string Quest id to check
----@return boolean is_can_be_started True if quest can be started
-local function can_be_started_quest(quest_id)
-	local quest_config = get_quest_config(quest_id)
-
-	local is_completed = M.is_completed(quest_id)
-	local is_active = M.is_active(quest_id)
-	local quests_ok = is_all_quests_completed(quest_config.required_quests)
-	return not is_completed and not is_active and quests_ok
-end
-
-
-local function create_can_be_started_list()
-	local quest_config = get_quests_data()
-
-	M.runtime.can_be_started = {}
-	local can_be_started = M.runtime.can_be_started
-
-	for quest_id, quest in pairs(quest_config) do
-		if can_be_started_quest(quest_id) then
-			table.insert(can_be_started, quest_id)
-		end
-	end
-end
-
-
-local function remove_from_started_list(quest_id)
-	local can_be_started = M.runtime.can_be_started
-
-	local index = quest_internal.contains(can_be_started, quest_id)
-	if index and type(index) == "number" then
-		table.remove(can_be_started, index)
-	end
-end
-
-
-local function on_complete_quest_update_started_list(quest_id)
-	local can_be_started = M.runtime.can_be_started
-	local relative_quests = M.runtime.quest_relative_map
-
-	if not relative_quests or not relative_quests[quest_id] then
-		return
-	end
-
-	for i = 1, #relative_quests[quest_id] do
-		local q = relative_quests[quest_id][i]
-		if can_be_started_quest(q) and not quest_internal.contains(can_be_started) then
-			table.insert(can_be_started, q)
-		end
-	end
-
-	-- Update repeatable quests
-	if can_be_started_quest(quest_id) and not quest_internal.contains(can_be_started) then
-		table.insert(can_be_started, quest_id)
-	end
-end
-
-
----Register quest to catch events even it not started
----@param quest_id string
-local function register_quest(quest_id)
-	local quests = get_quests_state()
-	local quest_config = get_quest_config(quest_id)
-	if quests.current[quest_id] then
-		quest_internal.logger:warn("Quest already started", quest_id)
-		return
-	end
-
-	---@type quest.progress
-	local quest_progress = {
-		progress = {},
-		is_active = false,
-		start_time = socket.gettime()
-	}
-
-	quests.current[quest_id] = quest_progress
-	for i = 1, #quest_config.tasks do
-		quests.current[quest_id].progress[i] = 0
-	end
-
-	M.on_quest_register:trigger(quest_id, quest_config)
-
-	quest_internal.logger:debug("Quest registered", quest_id)
-end
-
-
-local function clean_unexisting_quests()
-	local current = get_quests_state().current
-	for quest_id, quest in pairs(current) do
-		local quest_config = get_quest_config(quest_id)
-		if not quest_config then
-			current[quest_id] = nil
-		end
-	end
-end
-
-
----Used to setup initial quest progress in the state
-local function migrate_quests_data()
-	local current = get_quests_state().current
-	for quest_id, quest in pairs(current) do
-		local quest_config = get_quest_config(quest_id)
-		for i = 1, #quest_config.tasks do
-			quest.progress[i] = quest.progress[i] or 0
-		end
-	end
-end
-
-
----Start quest
----@param quest_id string
-local function start_quest(quest_id)
-	local quest_config = get_quest_config(quest_id)
-	local quests = get_quests_state()
-	if not quests.current[quest_id] then
-		register_quest(quest_id)
-	end
-
-	quests.current[quest_id].is_active = true
-	remove_from_started_list(quest_id)
-
-	M.on_quest_start:trigger(quest_id, quest_config)
-
-	quest_internal.logger:debug("Quest started", quest_id)
-
-	if quest_config.autofinish then
-		M.complete_quest(quest_id)
-	end
-end
-
-
-local function finish_quest(quest_id)
-	local quests = get_quests_state()
-	local quest_config = get_quest_config(quest_id)
-
-	if not quests.current[quest_id] then
-		quest_internal.logger:warn("No quest in current list to end it", quest_id)
-		return
-	end
-
-	if M.is_completed(quest_id) then
-		quest_internal.logger:warn("Quest already completed", quest_id)
-		return
-	end
-
-	quests.current[quest_id] = nil
-	if not quest_config.repeatable then
-		table.insert(quests.completed, quest_id)
-	end
-
-	M.on_quest_completed:trigger(quest_id, quest_config)
-	quest_internal.logger:debug("Quest completed", quest_id)
-
-	on_complete_quest_update_started_list(quest_id)
+	lifecycle.set_quest_relative_map(lifecycle.make_relative_quests_map())
+	lifecycle.create_can_be_started_list()
+	lifecycle.register_offline_quests()
 	M.update_quests()
 end
 
 
-local function register_offline_quests()
-	local quests_data = get_quests_data()
-	local quests = get_quests_state()
-
-	for quest_id, quest in pairs(quests_data) do
-		if is_catch_offline(quest_id) and not quests.current[quest_id] then
-			register_quest(quest_id)
-		end
-	end
-end
-
-
-local function update_quests_list()
-	local quests_data = get_quests_data()
-
-	local current = get_quests_state().current
-	for quest_id, quest in pairs(current) do
-		if quest.is_active and quests_data[quest_id].autofinish then
-			M.complete_quest(quest_id)
-		end
-	end
-
-	local can_be_started = M.runtime.can_be_started
-	for i = #can_be_started, 1, -1 do
-		local quest_id = can_be_started[i]
-		local quest = quests_data[quest_id]
-
-		if quest.autostart then
-			M.start_quest(quest_id)
-		end
-	end
-end
-
-
----Apply event to quest
----@param quest_id string Quest id to apply event
----@param quest quest.progress Quest progress
+-- Trigger quest event
+---Main function to apply event to all current quests. Call it when specific quest action is performed.
+---		quest.event("game_started")
+---		quest.event("kill", "enemy")
+---		quest.event("kill", "enemy", 2)
+---		quest.event("collect", "coin", 3)
 ---@param action string Event action
 ---@param object string|nil Event object
----@param amount number|nil Event amount
-local function apply_event(quest_id, quest, action, object, amount)
-	object = object or ""
-	amount = amount or 1
-
-	local quest_config = get_quest_config(quest_id)
-	local is_updated = false
-
-	for task_index = 1, #quest_config.tasks do
-		local task_data = quest_config.tasks[task_index]
-		local required = task_data.required or 1
-		local match_action = task_data.action == action
-		local match_object = (task_data.object == object or task_data.object == "")
-
-		if match_action and match_object then
-			is_updated = true
-
-			local prev_value = quest.progress[task_index]
-			local task_value
-			if quest_config.use_max_task_value then
-				task_value = math.max(prev_value, amount)
-			else
-				task_value = prev_value + amount
-			end
-
-			quest.progress[task_index] = quest_internal.clamp(task_value, 0, required)
-			local delta = quest.progress[task_index] - prev_value
-
-			M.on_quest_progress:trigger(quest_id, quest_config, delta, quest.progress[task_index], task_index)
-
-			quest_internal.logger:debug("Quest progress updated", {
-				quest_id = quest_id,
-				task_index = task_index,
-				delta = delta,
-				total = quest.progress[task_index]
-			})
-
-			if quest.progress[task_index] == required then
-				M.on_quest_task_completed:trigger(quest_id, quest_config, task_index)
-
-				quest_internal.logger:debug("Quest task completed", {
-					quest_id = quest_id,
-					task_index = task_index
-				})
-			end
-		end
+---@param amount number|nil Event amount default 1
+function M.event(action, object, amount)
+	local is_can_event_callback = nil
+	if not M.is_can_event:is_empty() then
+		is_can_event_callback = M.is_can_event
 	end
 
-	return is_updated
+	local is_applied = quest_progress.process_event(action, object, amount, is_can_event_callback)
+
+	if is_applied then
+		M.update_quests()
+	end
 end
 
 
----Get current progress on quest
+---Add progress to task
+---@param quest_id string Quest id
+---@param task_index number Task index
+---@param amount number Amount to add
+function M.add_task_progress(quest_id, task_index, amount)
+	local quests = state.get_state()
+	local quest_progress_data = quests.current[quest_id]
+	if not quest_progress_data then
+		return
+	end
+
+	local quest_config = config.get_quest_config(quest_id)
+	if not quest_config or not quest_config.tasks[task_index] then
+		return
+	end
+
+	local task_config = quest_config.tasks[task_index]
+	local action = task_config.action
+	local object = task_config.object
+	local is_applied = quest_progress.apply_event(quest_id, quest_progress_data, action, object, amount)
+	if is_applied then
+		M.update_quests()
+	end
+
+	logger:debug("Quest task progress added", {
+		quest_id = quest_id,
+		task_index = task_index,
+		action = action,
+		object = object,
+		amount = amount,
+		is_applied = is_applied
+	})
+end
+
+
+-- Check quest status
+---Check quest is active
 ---@param quest_id string
----@return table<string, number>
+---@return boolean Quest active state
+function M.is_active(quest_id)
+	return validation.is_active(quest_id)
+end
+
+
+---Check quest is completed
+---@param quest_id string
+---@return boolean is_completed Quest completed state
+function M.is_completed(quest_id)
+	return validation.is_completed(quest_id)
+end
+
+
+---Check quest is can be started now
+---@param quest_id string
+---@return boolean Quest can start state
+function M.is_can_start_quest(quest_id)
+	local quest_config = config.get_quest_config(quest_id)
+	if not quest_config then
+		return false
+	end
+
+	local is_can_start_extra = true
+	if not quest_events.is_can_start:is_empty() then
+		is_can_start_extra = M.is_can_start:trigger(quest_id, quest_config)
+	end
+
+	return is_can_start_extra and validation.is_available(quest_id) and not validation.is_active(quest_id)
+end
+
+
+---Check quest is can be completed now
+---@param quest_id string
+---@return boolean Quest can complete state
+function M.is_can_complete_quest(quest_id)
+	local quest_config = config.get_quest_config(quest_id)
+
+	local is_can_complete_extra = true
+	if not M.is_can_complete:is_empty() then
+		is_can_complete_extra = M.is_can_complete:trigger(quest_id, quest_config)
+	end
+
+	return is_can_complete_extra and validation.is_active(quest_id) and validation.is_tasks_completed(quest_id)
+end
+
+
+---Get current progress on quest tasks.
+---Returns an array-like table with task progress values.
+---		local progress = quest.get_progress("kill_enemies")
+---		print(progress[1]) -- Progress on first task
+---		print(progress[2]) -- Progress on second task
+---		--
+---		local progress = quest.get_progress("nonexistent_quest")
+---		print(#progress) -- Will be 0 for non-existent quests
+---@param quest_id string Quest identifier
+---@return table<number, number> progress List of task progress, ex {0, 2, 0}
 function M.get_progress(quest_id)
-	local quests = get_quests_state()
+	local quests = state.get_state()
 	return quests.current[quest_id] and quests.current[quest_id].progress or {}
 end
 
 
+---Get task progress by task index
+---@param quest_id string
+---@param task_index number
+---@return number
+function M.get_task_progress(quest_id, task_index)
+	local quests = state.get_state()
+	-- Get in current or completed list
+	local is_completed = validation.is_completed(quest_id)
+	if is_completed then
+		local quest_config = config.get_quest_config(quest_id)
+		if quest_config and quest_config.tasks[task_index] then
+			return quest_config.tasks[task_index].required or 1
+		end
+		return 0
+	end
+
+	if not quests.current[quest_id] then
+		return 0
+	end
+
+	return quests.current[quest_id].progress[task_index] or 0
+end
+
+
+-- Manage quests
+---Start quest, if it can be started
+---@param quest_id string
+---@return boolean Quest started state
+function M.start_quest(quest_id)
+	if M.is_can_start_quest(quest_id) then
+		lifecycle.start_quest(quest_id)
+		M.update_quests()
+		return true
+	end
+
+	return false
+end
+
+
+---Complete quest, if it can be completed
+---@param quest_id string Quest id
+function M.complete_quest(quest_id)
+	if M.is_can_complete_quest(quest_id) then
+		lifecycle.finish_quest(quest_id)
+		M.update_quests()
+	end
+end
+
+
+---Force complete quest, without checking conditions
+---@param quest_id string Quest id
+function M.force_complete_quest(quest_id)
+	lifecycle.finish_quest(quest_id)
+	M.update_quests()
+end
+
+
+---Reset quest progress
+---@param quest_id string Quest id
+function M.reset_progress(quest_id)
+	local quests = state.get_state()
+	local quest = quests.current[quest_id]
+
+	if quest then
+		for i = 1, #quest.progress do
+			quest.progress[i] = 0
+		end
+	end
+
+	M.update_quests()
+
+	logger:debug("Quest progress reset", quest_id)
+end
+
+
+---Reset quest, remove from current and completed lists, and update can be started list
+---@param quest_id string Quest id
+function M.reset_quest(quest_id)
+	local quests = state.get_state()
+	quests.current[quest_id] = nil
+
+	for index = 1, #quests.completed do
+		if quests.completed[index] == quest_id then
+			table.remove(quests.completed, index)
+		end
+	end
+
+	lifecycle.create_can_be_started_list()
+	lifecycle.register_offline_quests()
+	M.update_quests()
+
+	logger:debug("Quest reset", quest_id)
+end
+
+
+---Clear all quest progress
+function M.clear_all_progress()
+	local quests = state.get_state()
+	quests.current = {}
+	quests.completed = {}
+
+	lifecycle.create_can_be_started_list()
+	lifecycle.register_offline_quests()
+	M.update_quests()
+end
+
+
+-- Get quests
 ---Get current active quests
 ---@param category string|nil
 ---@return table<string, quest.progress>
 function M.get_current(category)
-	local quests = get_quests_state().current
+	local quests = state.get_state().current
 	local result = {}
 
 	for quest_id, quest in pairs(quests) do
 		local is_category_match = true
 		if category then
-			local quest_config = get_quest_config(quest_id)
-			is_category_match = quest_config.category == category
+			local quest_config = config.get_quest_config(quest_id)
+			is_category_match = quest_config and quest_config.category == category
 		end
 
 		if quest.is_active and is_category_match then
@@ -506,16 +360,21 @@ end
 ---@param category string|nil Optional category filter
 ---@return table<string, boolean> Map of completed quests
 function M.get_completed(category)
-	local quests = get_quests_state()
+	local quests = state.get_state()
 
 	if not category then
-		return quests.completed
+		local result = {}
+		for index = 1, #quests.completed do
+			result[quests.completed[index]] = true
+		end
+		return result
 	end
 
 	local result = {}
-	local quests_data = get_quests_data()
+	local quests_data = config.get_quests_data()
 
-	for quest_id, _ in pairs(quests.completed) do
+	for index = 1, #quests.completed do
+		local quest_id = quests.completed[index]
 		local quest_config = quests_data[quest_id]
 		if quest_config and quest_config.category == category then
 			result[quest_id] = true
@@ -526,122 +385,25 @@ function M.get_completed(category)
 end
 
 
----Check if there is quests in current with
----pointer action and object
----@param action string Action to check
----@param object string|nil Object to check
----@return boolean
-function M.is_current_with_task(action, object)
-	local quests = get_quests_state().current
-	for quest_id, quest in pairs(quests) do
-		local quest_config = get_quest_config(quest_id)
-		for i = 1, #quest_config.tasks do
-			local task = quest_config.tasks[i]
-			if task.action == action and (task.object == object or task.object == "") then
-				return true
-			end
+---Get quests that can be started
+---@param category string|nil Optional category filter
+---@return table<string, boolean>
+function M.get_can_be_started(category)
+	local quests = lifecycle.get_can_be_started()
+
+	if not category then
+		return quests
+	end
+
+	local result = {}
+	for quest_id, _ in pairs(quests) do
+		local quest_config = config.get_quest_config(quest_id)
+		if quest_config and quest_config.category == category then
+			result[quest_id] = true
 		end
 	end
 
-	return false
-end
-
-
----Check quest is active
----@return boolean Quest active state
-function M.is_active(quest_id)
-	local quests = get_quests_state()
-	local quest = quests.current[quest_id]
-	return quest and quest.is_active
-end
-
-
----Check quest is completed
----@param quest_id string
----@return boolean is_completed Quest completed state
-function M.is_completed(quest_id)
-	local quests = get_quests_state()
-	return quest_internal.contains(quests.completed, quest_id) --[[@as boolean]]
-end
-
-
----Check quest is can be started now
----@param quest_id string
----@return boolean Quest can start state
-function M.is_can_start_quest(quest_id)
-	local quest_config = get_quest_config(quest_id)
-	if not quest_config then
-		return false
-	end
-
-	local is_can_start_extra = true
-	if not M.is_can_start:is_empty() then
-		is_can_start_extra = M.is_can_start:trigger(quest_id, quest_config)
-	end
-
-	return is_can_start_extra and is_available(quest_id) and not M.is_active(quest_id)
-end
-
-
----Start quest, if it can be started
----@param quest_id string
----@return boolean Quest started state
-function M.start_quest(quest_id)
-	if M.is_can_start_quest(quest_id) then
-		start_quest(quest_id)
-		return true
-	end
-
-	return false
-end
-
-
----Check quest is can be completed now
----@param quest_id string
----@return boolean Quest can complete state
-function M.is_can_complete_quest(quest_id)
-	local quest_config = get_quest_config(quest_id)
-
-	local is_can_complete_extra = true
-	if not M.is_can_complete:is_empty() then
-		is_can_complete_extra = M.is_can_complete:trigger(quest_id, quest_config)
-	end
-
-	return is_can_complete_extra and M.is_active(quest_id) and is_tasks_completed(quest_id)
-end
-
-
----Complete quest, if it can be completed
----@param quest_id string Quest id
-function M.complete_quest(quest_id)
-	if M.is_can_complete_quest(quest_id) then
-		finish_quest(quest_id)
-	end
-end
-
-
----Force complete quest, without checking conditions
----@param quest_id string Quest id
-function M.force_complete_quest(quest_id)
-	finish_quest(quest_id)
-end
-
-
----Reset quest progress
----@param quest_id string Quest id
-function M.reset_progress(quest_id)
-	local quests = get_quests_state()
-	local quest = quests.current[quest_id]
-
-	if quest then
-		for i = 1, #quest.progress do
-			quest.progress[i] = 0
-		end
-	end
-
-	M.update_quests()
-
-	quest_internal.logger:debug("Quest progress reset", quest_id)
+	return result
 end
 
 
@@ -649,74 +411,135 @@ end
 ---@param quest_id string Quest id
 ---@return quest.config
 function M.get_quest_config(quest_id)
-	return get_quest_config(quest_id)
+	return config.get_quest_config(quest_id)
 end
 
 
----Apply event to all current quests
----@param action string Event action
----@param object string|nil Event object
----@param amount number|nil Event amount
-function M.quest_event(action, object, amount)
-	local quests_data = get_quests_data()
-	local current = get_quests_state().current
-	local is_applied = false
+---Get current quests that have tasks matching the specified action and object.
+---Returns an array of quest IDs that contain matching tasks.
+---		local quests = quest.is_current_with_task("kill", "enemy")
+---		if #quests > 0 then
+---			print("Found " .. #quests .. " quests with kill enemy task")
+---		end
+---		--
+---		local quests = quest.is_current_with_task("collect")
+---		for i, quest_id in ipairs(quests) do
+---			print("Quest " .. quest_id .. " has collect task")
+---		end
+---@param action string Action to check (e.g., "kill", "collect")
+---@param object string|nil Object to check (e.g., "enemy", "coin"). Can be nil for any object
+---@return string[] List of quest IDs that have matching tasks
+function M.get_current_with_task(action, object)
+	local quests = state.get_state().current
+	local result = {}
 
-	for quest_id, quest in pairs(current) do
-		local quest_config = quests_data[quest_id]
-		local is_can_event = true
-		if not M.is_can_event:is_empty() then
-			is_can_event = M.is_can_event:trigger(quest_id, quest_config)
-		end
+	for quest_id, quest in pairs(quests) do
+		local quest_config = config.get_quest_config(quest_id)
+		if quest_config then
+			for i = 1, #quest_config.tasks do
+				local task = quest_config.tasks[i]
+				local match_object = true
+				if object ~= nil then
+					match_object = (task.object == object or task.object == "" or task.object == nil)
+				end
 
-		if is_can_event then
-			if apply_event(quest_id, quest, action, object, amount) then
-				is_applied = true
+				if task.action == action and match_object then
+					table.insert(result, quest_id)
+					break -- Found a match, no need to check other tasks for this quest
+				end
 			end
 		end
 	end
 
-	if is_applied then
+	return result
+end
+
+
+-- System
+---Customize the logging mechanism used by Quest Module. You can use **Defold Log** library or provide a custom logger.
+---@param logger_instance quest.logger|table|nil
+function M.set_logger(logger_instance)
+	logger.set_logger(logger_instance)
+end
+
+
+---Reset Module quest state, probably you want to use it only in case of soft game reload
+function M.reset_state()
+	state.reset_state()
+	lifecycle.reset_runtime_state()
+	quest_events.reset_state()
+end
+
+
+---Get quests data
+---@return table<string, quest.config>
+function M.get_quests_data()
+	return config.get_quests_data()
+end
+
+
+---Get total quests count in quests config
+---@return number Total quests count
+function M.get_quests_count()
+	return config.get_quests_count()
+end
+
+
+---Update quests lifecycle by processing autostart and autofinish quests.
+---This function recursively processes quest state changes until no more changes occur.
+---It handles quest completion and starting based on quest configuration and validation.
+---
+---Process:
+---1. Complete autofinish quests that meet completion criteria
+---2. Start autostart quests that meet start criteria
+---3. Recursively call itself if any changes occurred
+---@private
+function M.update_quests()
+	local should_continue = false
+
+	-- Complete autofinish quests with validation
+	local current = state.get_state().current
+	local quests_data = config.get_quests_data()
+	for quest_id, quest in pairs(current) do
+		if quest.is_active and quests_data[quest_id].autofinish then
+			if M.is_can_complete_quest(quest_id) then
+				lifecycle.finish_quest(quest_id)
+				should_continue = true
+			end
+		end
+	end
+
+	-- Start autostart quests with validation
+	local can_be_started = lifecycle.get_can_be_started()
+	for quest_id, _ in pairs(can_be_started) do
+		local quest = quests_data[quest_id]
+		if quest.autostart then
+			if M.is_can_start_quest(quest_id) then
+				lifecycle.start_quest(quest_id)
+				should_continue = true
+			end
+		end
+	end
+
+	-- Keep updating until no more changes
+	if should_continue then
 		M.update_quests()
 	end
-
-	quest_internal.logger:debug("Quest event process", {
-		action = action,
-		object = object,
-		amount = amount,
-		is_applied = is_applied
-	})
 end
 
 
----Init quest system
----After init the quest system can trigger events, so you should subscribe to events before init
----@param quest_config_or_path table<string, quest.config>|string Path to quest config. Example: "/resources/quests.json"
-function M.init(quest_config_or_path)
-	quest_internal.load_config(quest_config_or_path)
-
-	clean_unexisting_quests()
-	migrate_quests_data()
-
-	M.runtime.is_started = true
-	M.runtime.quest_relative_map = make_relative_quests_map()
-
-	create_can_be_started_list()
-	register_offline_quests()
-	M.update_quests()
-
-	quest_internal.logger:info("Quest system initialized", { quest_count = M.get_quests_count() })
-end
-
-
----Update quests list
--- It will start and end quests, by checking quests condition
-function M.update_quests()
-	if not M.runtime.is_started then
-		return
+---Postprocess quest state to ensure all task progress entries exist
+---@private
+function M.postprocess_quest_state()
+	local current = state.get_state().current
+	for quest_id, quest in pairs(current) do
+		local quest_config = config.get_quest_config(quest_id)
+		if quest_config then
+			for i = 1, #quest_config.tasks do
+				quest.progress[i] = quest.progress[i] or 0
+			end
+		end
 	end
-
-	update_quests_list()
 end
 
 

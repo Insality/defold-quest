@@ -15,7 +15,7 @@ local quest = require("quest.quest")
 
 function init(self)
 	saver.init()
-	saver.bind_save_part("quest", quest.state)
+	saver.bind_save_part("quest", quest.get_state())
 
 	quest.init()
 end
@@ -28,13 +28,14 @@ local quest = require("quest.quest")
 
 local function save_quest_state()
 	-- Save a quest.state table as you wish
-	save_quest_state(quest.state)
+	save_quest_state(quest.get_state())
 end
 
 
 local function load_quest_state()
 	-- Load a quest.state table as you wish
-	return load_quest_state_from_save()
+	local saved_state = load_quest_state_from_save()
+	quest.set_state(saved_state)
 end
 
 
@@ -44,19 +45,43 @@ function init(self)
 end
 ```
 
+## Extend Quest Config
 
-## Custom Configuration
-- How to configure the module to fit your additional requirements
+You can extend quest config by using the `quest.config` class to fullfill the annotations.
 
-## Use Defold-Quest with Defold-Token module
-- How to add requirements to quest start
-- How to add rewards from quests
+```lua
+---@class quest.config
+---@field reward table<string, amount> Reward table
+```
 
-## Add your fields to quest data
-- How category can be used
+Inside your quest config file you free to use any data
+```lua
+return {
+	["tutorial_menu"] = {
+		tasks = { { action = "click", object = "menu" } }
+		reward = { gold = 100 }
+	}
+}
+```
 
-## Use quest as repetitive tasks
-- Examples and how to use quest as daily tasks
 
-## Use quest as game progression
-- How to use quest as game progression
+## Add additional conditions to quest
+
+You can add additional conditions to quest by using the `quest.is_can_event` event.
+
+```lua
+quest.is_can_event:subscribe(function(quest_id, quest_config)
+	-- Any custom checks of quest event processing
+	return true
+end)
+
+quest.is_can_start:subscribe(function(quest_id, quest_config)
+	-- Any custom checks of quest can be started
+	return true
+end)
+
+quest.is_can_complete:subscribe(function(quest_id, quest_config)
+	-- Any custom checks of quest can be completed
+	return true
+end)
+```

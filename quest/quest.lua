@@ -136,6 +136,10 @@ function M.add_task_progress(quest_id, task_index, amount)
 	end
 
 	local quest_config = config.get_quest_config(quest_id)
+	if not quest_config or not quest_config.tasks[task_index] then
+		return
+	end
+
 	local task_config = quest_config.tasks[task_index]
 	local action = task_config.action
 	local object = task_config.object
@@ -157,6 +161,7 @@ end
 
 -- Check quest status
 ---Check quest is active
+---@param quest_id string
 ---@return boolean Quest active state
 function M.is_active(quest_id)
 	return validation.is_active(quest_id)
@@ -230,14 +235,17 @@ function M.get_task_progress(quest_id, task_index)
 	local is_completed = validation.is_completed(quest_id)
 	if is_completed then
 		local quest_config = config.get_quest_config(quest_id)
-		return quest_config.tasks[task_index].required or 1
+		if quest_config and quest_config.tasks[task_index] then
+			return quest_config.tasks[task_index].required or 1
+		end
+		return 0
 	end
 
 	if not quests.current[quest_id] then
 		return 0
 	end
 
-	return quests.current[quest_id].progress[task_index]
+	return quests.current[quest_id].progress[task_index] or 0
 end
 
 
@@ -336,7 +344,7 @@ function M.get_current(category)
 		local is_category_match = true
 		if category then
 			local quest_config = config.get_quest_config(quest_id)
-			is_category_match = quest_config.category == category
+			is_category_match = quest_config and quest_config.category == category
 		end
 
 		if quest.is_active and is_category_match then
@@ -365,7 +373,8 @@ function M.get_completed(category)
 	local result = {}
 	local quests_data = config.get_quests_data()
 
-	for quest_id, _ in pairs(quests.completed) do
+	for index = 1, #quests.completed do
+		local quest_id = quests.completed[index]
 		local quest_config = quests_data[quest_id]
 		if quest_config and quest_config.category == category then
 			result[quest_id] = true
@@ -389,7 +398,7 @@ function M.get_can_be_started(category)
 	local result = {}
 	for quest_id, _ in pairs(quests) do
 		local quest_config = config.get_quest_config(quest_id)
-		if quest_config.category == category then
+		if quest_config and quest_config.category == category then
 			result[quest_id] = true
 		end
 	end
@@ -426,11 +435,18 @@ function M.get_current_with_task(action, object)
 
 	for quest_id, quest in pairs(quests) do
 		local quest_config = config.get_quest_config(quest_id)
-		for i = 1, #quest_config.tasks do
-			local task = quest_config.tasks[i]
-			if task.action == action and (task.object == object or task.object == "") then
-				table.insert(result, quest_id)
-				break -- Found a match, no need to check other tasks for this quest
+		if quest_config then
+			for i = 1, #quest_config.tasks do
+				local task = quest_config.tasks[i]
+				local match_object = true
+				if object ~= nil then
+					match_object = (task.object == object or task.object == "" or task.object == nil)
+				end
+
+				if task.action == action and match_object then
+					table.insert(result, quest_id)
+					break -- Found a match, no need to check other tasks for this quest
+				end
 			end
 		end
 	end

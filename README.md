@@ -189,11 +189,10 @@ For any issues, questions, or suggestions, please [create an issue](https://gith
 - Initial Release
 
 ### **V2**
-- Tests, refactor, docs, annotations
+- Token integration, docs, annotations, refactor events
 
 ### **V3**
--- Refactor containers and token API
--- Update docs
+-- Refactor quest events, update docs
 
 </details>
 

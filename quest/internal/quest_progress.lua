@@ -19,6 +19,10 @@ function M.apply_event(quest_id, quest_progress, action, object, amount)
 	amount = amount or 1
 
 	local quest_config = config.get_quest_config(quest_id)
+	if not quest_config then
+		return false
+	end
+
 	local is_updated = false
 
 	for task_index = 1, #quest_config.tasks do
@@ -30,7 +34,7 @@ function M.apply_event(quest_id, quest_progress, action, object, amount)
 		if match_action and match_object then
 			is_updated = true
 
-			local prev_value = quest_progress.progress[task_index]
+			local prev_value = quest_progress.progress[task_index] or 0
 			local task_value
 			if quest_config.use_max_task_value then
 				task_value = math.max(prev_value, amount)
@@ -79,7 +83,7 @@ function M.process_event(action, object, amount, is_can_event_callback)
 		local quest_config = quests_data[quest_id]
 		local is_can_event = true
 		if is_can_event_callback then
-			local result = is_can_event_callback(quest_id, quest_config)
+			local result = is_can_event_callback:trigger(quest_id, quest_config)
 			is_can_event = result or false
 		end
 

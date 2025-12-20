@@ -75,11 +75,18 @@ end
 ---@return boolean True if all tasks are completed
 function M.is_tasks_completed(quest_id)
 	local quest_config = config.get_quest_config(quest_id)
+	if not quest_config then
+		return false
+	end
+
 	local quests = state.get_state().current[quest_id]
+	if not quests then
+		return false
+	end
 
 	for i = 1, #quest_config.tasks do
 		local required = quest_config.tasks[i].required or 1
-		local current = quests.progress[i]
+		local current = quests.progress[i] or 0
 
 		if current < required then
 			return false

@@ -7,11 +7,6 @@
 [![Github-sponsors](https://img.shields.io/badge/sponsor-30363D?style=for-the-badge&logo=GitHub-Sponsors&logoColor=#EA4AAA)](https://github.com/sponsors/insality) [![Ko-Fi](https://img.shields.io/badge/Ko--fi-F16061?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/insality) [![BuyMeACoffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://www.buymeacoffee.com/insality)
 
 
-# Disclaimer
-
-The library in development stage. May be not fully tested and README may be not full. If you have any questions, please, create an issue. This library is an adoptation of [Quest](https://github.com/Insality/defold-eva/blob/master/eva/modules/quests.lua) module from my [Defold-Eva](https://github.com/Insality/defold-eva) library.
-
-
 # Quest
 
 **Quest** - module is a comprehensive system for managing quests in a game. It allows for the registration, tracking, and completion of quests, with various events and callbacks to handle quest-related activities.
@@ -38,10 +33,10 @@ Open your `game.project` file and add the following line to the dependencies fie
 https://github.com/Insality/defold-event/archive/refs/tags/13.zip
 ```
 
-**[Defold Quest](https://github.com/Insality/defold-quest/archive/refs/tags/1.zip)**
+**[Defold Quest](https://github.com/Insality/defold-quest/archive/refs/tags/3.zip)**
 
 ```
-https://github.com/Insality/defold-quest/archive/refs/tags/1.zip
+https://github.com/Insality/defold-quest/archive/refs/tags/3.zip
 ```
 
 After that, select `Project ▸ Fetch Libraries` to update [library dependencies]((https://defold.com/manuals/libraries/#setting-up-library-dependencies)). This happens automatically whenever you open a project so you will only need to do this if the dependencies change without re-opening the project.
@@ -56,12 +51,63 @@ After that, select `Project ▸ Fetch Libraries` to update [library dependencies
 | Desktop / Mobile | **7.57 KB**  |
 
 
+## Basic Usage
+
+```lua
+local quest = require("quest.quest")
+
+quest.init({
+	["quest_01"] = {
+		autostart = true,
+		autofinish = true,
+		category = "quests",
+		tasks = { { action = "intro_completed" } },
+	},
+	["quest_02"] = {
+		autostart = true,
+		autofinish = true,
+		category = "quests",
+		required_quests = { "quest_01" },
+		tasks = { { action = "collect", object = "coin", required = 10 } },
+	},
+	["quest_03"] = {
+		autostart = true,
+		autofinish = true,
+		category = "quests",
+		required_quests = { "quest_02" },
+		tasks = {
+			{ action = "kill", object = "enemy", required = 5 },
+			{ action = "kill", object = "boss", required = 1 }
+		},
+	},
+})
+
+-- Throw events for active quests
+quest.event("kill", "enemy")
+quest.event("kill", "enemy", 2)
+quest.event("collect", "coin", 3)
+
+-- Subscribe to quest events
+quest.on_quest_event:subscribe(function(event_data)
+	print("Type", event_data.type)
+	print("Quest ID", event_data.quest_id)
+	print("Quest Config", event_data.quest_config)
+	print("Delta", event_data.delta)
+	print("Total", event_data.total)
+	print("Task Index", event_data.task_index)
+	return true -- Handle quest event
+end)
+
+-- Check if any quest is active for specific action and object
+local quests = quest.get_current_with_task("kill", "boss")
+```
+
 ## API Reference
 
 ### Quick API Reference
 
 ```lua
---- quest.event_data: { type: quest.event_type, quest_id: string, quest_config: quest.config, event_data: quest.event_data }
+--- quest.event_data: { type: quest.event_type, quest_id: string, quest_config: quest.config, delta: number, total: number, task_index: number }
 --- quest.event_type: "register"|"start"|"progress"|"task_completed"|"completed"
 
 local quest = require("quest.quest")
@@ -111,7 +157,6 @@ quest.set_logger([logger_instance])
 quest.reset_state()
 quest.get_quests_data()
 quest.get_quests_count()
-
 ```
 
 ### API Reference
@@ -135,6 +180,22 @@ For any issues, questions, or suggestions, please [create an issue](https://gith
 <a href="https://github.com/Insality/defold-quest/graphs/contributors">
   <img src="https://contributors-img.web.app/image?repo=insality/defold-quest"/>
 </a>
+
+
+## Changelog
+<details>
+
+### **V1**
+- Initial Release
+
+### **V2**
+- Tests, refactor, docs, annotations
+
+### **V3**
+-- Refactor containers and token API
+-- Update docs
+
+</details>
 
 ## ❤️ Support project ❤️
 

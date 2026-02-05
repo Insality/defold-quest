@@ -50,14 +50,14 @@ end
 
 local function load_quest_state()
 	-- Load a quest.state table as you wish
-	local saved_state = load_quest_state_from_save()
-	quest.set_state(saved_state)
+	return load_quest_state_from_save()
 end
 
 
 function init(self)
-	quest.state = load_quest_state()
-	quest.init(quest_state)
+	local state = load_quest_state()
+	quest.set_state(state)
+	quest.init()
 end
 ```
 

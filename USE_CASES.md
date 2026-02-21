@@ -16,6 +16,12 @@ Here is full description of the quest config:
 ---@field autofinish boolean|nil If true, the quest will be finished automatically after all tasks are completed
 ---@field repeatable boolean|nil If true, the quest will be not stored in the completed list
 ---@field use_max_task_value boolean|nil If true, the maximum value of the task is used instead of the sum of all quest events
+
+---@class quest.task
+---@field action string Action to perform to complete the task. Example: "destroy" or "collect"
+---@field object string|nil Object to specify the task, example: "enemy" or "money", Default: nil
+---@field required number|nil Required amount of the object to complete the task. Default: 1
+---@field initial number|nil Initial amount of the object. Default: 0
 ```
 
 
@@ -108,21 +114,18 @@ end)
 
 ## Add additional conditions to quest
 
-You can add additional conditions to quest by using the `quest.is_can_event` event.
+You can add additional conditions to quest by subscribing to the `quest.is_can_event`, `quest.is_can_start` and `quest.is_can_complete` events.
 
 ```lua
 quest.is_can_event:subscribe(function(quest_id, quest_config)
-	-- Any custom checks of quest event processing
-	return true
+	return true -- Return true to allow event processing, return false to block event processing
 end)
 
 quest.is_can_start:subscribe(function(quest_id, quest_config)
-	-- Any custom checks of quest can be started
-	return true
+	return true -- Return true to allow quest start, return false to block quest start
 end)
 
 quest.is_can_complete:subscribe(function(quest_id, quest_config)
-	-- Any custom checks of quest can be completed
-	return true
+	return true -- Return true to allow quest completion, return false to block quest completion
 end)
 ```

@@ -30,7 +30,7 @@ Open your `game.project` file and add the following line to the dependencies fie
 **[Defold Event](https://github.com/Insality/defold-event)**
 
 ```
-https://github.com/Insality/defold-event/archive/refs/tags/13.zip
+https://github.com/Insality/defold-event/archive/refs/tags/14.zip
 ```
 
 **[Defold Quest](https://github.com/Insality/defold-quest/archive/refs/tags/3.zip)**
@@ -89,13 +89,16 @@ quest.event("collect", "coin", 3)
 
 -- Subscribe to quest events
 quest.on_quest_event:subscribe(function(event_data)
-	print("Type", event_data.type)
-	print("Quest ID", event_data.quest_id)
-	print("Quest Config", event_data.quest_config)
-	print("Delta", event_data.delta)
-	print("Total", event_data.total)
-	print("Task Index", event_data.task_index)
-	return true -- Handle quest event
+	print("Type", event_data.type) -- "register"|"start"|"progress"|"task_completed"|"completed"
+	print("Quest ID", event_data.quest_id) -- Quest ID
+	print("Quest Config", event_data.quest_config) -- Quest Config table
+	print("Delta", event_data.delta) -- Progress delta (for "progress" type)
+	print("Total", event_data.total) -- Total progress (for "progress" type)
+	print("Task Index", event_data.task_index) -- Task index (for "progress" and "task_completed" types)
+
+	-- This is a queue and we have to handle event by returning true
+	-- If we don't return true, the event will be fired again
+	return true
 end)
 
 -- Check if any quest is active for specific action and object

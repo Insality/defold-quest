@@ -129,3 +129,98 @@ quest.is_can_complete:subscribe(function(quest_id, quest_config)
 	return true -- Return true to allow quest completion, return false to block quest completion
 end)
 ```
+
+
+## Starting and completing quests
+
+Use `quest.start_quest(quest_id)` when the player accepts a quest (e.g. from an NPC). It returns `true` if the quest was started. Use `quest.complete_quest(quest_id)` when the player turns in a quest; it only completes if all tasks are done and any `is_can_complete` conditions pass.
+
+For autostart/autofinish quests you typically do not call these manually — the module starts and completes them in `quest.update_quests()`. Use `quest.force_complete_quest(quest_id)` to complete a quest without checking conditions (e.g. debug or scripted story moments).
+
+```lua
+if quest.is_can_start_quest("hunt_wolves") then
+	if quest.start_quest("hunt_wolves") then
+		show_quest_started_message()
+	end
+end
+
+if quest.is_can_complete_quest("hunt_wolves") then
+	quest.complete_quest("hunt_wolves")
+	show_reward_screen()
+end
+```
+
+
+## Using categories
+
+Set `category` in quest config to group quests (e.g. `"main"`, `"side"`, `"daily"`). Use it with the getters to build filtered UI or logic.
+
+```lua
+-- In quest config
+["main_quest_1"] = { category = "main", tasks = { ... } }
+["side_fetch"] = { category = "side", tasks = { ... } }
+
+-- In game
+local main_quests = quest.get_current("main")
+local completed_side = quest.get_completed("side")
+local available_daily = quest.get_can_be_started("daily")
+```
+
+
+## Finding quests by task
+
+Use `quest.get_current_with_task(action, object)` to get active quest IDs that have a task matching the given action (and optionally object). Useful to adjust gameplay while a quest is active—e.g. boost loot, change dialogue, or spawn different enemies when the player has a matching quest.
+
+```lua
+local quests_with_kill_enemy = quest.get_current_with_task("kill", "enemy")
+if #quests_with_kill_enemy > 0 then
+	-- Player has an active "kill enemy" quest: increase drop rate or show special loot
+	loot_multiplier = 1.5
+end
+
+local quests_collecting_coins = quest.get_current_with_task("collect", "coin")
+for _, quest_id in ipairs(quests_collecting_coins) do
+	highlight_coin_pickups(quest_id)
+end
+```
+
+
+## Autostart, autofinish and repeatable
+
+- **autostart**: When requirements are met (e.g. `required_quests` done), the quest is started automatically on the next `quest.update_quests()` (called after `quest.init`, `quest.add_quests`, `quest.event`, etc.). No need to call `quest.start_quest()`.
+- **autofinish**: When all tasks are complete and `is_can_complete` allows it, the quest is completed automatically. No need to call `quest.complete_quest()`.
+- **repeatable**: Completed quest is not added to the completed list, so it can become available again (e.g. when requirements are met for autostart, or you reset it). Use for dailies or repeatable objectives.
+
+```lua
+["daily_bounty"] = {
+	tasks = { { action = "kill", object = "bandit", required = 5 } },
+	autostart = true,
+	autofinish = true,
+	repeatable = true
+}
+```
+
+
+## events_offline
+
+When `events_offline = true`, the quest is registered and receives events even when it is not active. Progress is stored and applied when the quest is later started. Use for quests that should count actions the player did before accepting the quest.
+
+```lua
+["retroactive_collect"] = {
+	tasks = { { action = "collect", object = "artifact", required = 3 } },
+	events_offline = true
+}
+```
+
+
+## use_max_task_value
+
+By default, a task’s progress is the sum of all matching events. With `use_max_task_value = true`, the task progress is the maximum single value reported for that task (e.g. from `quest.event("collect", "gem", 5)`). Use when the task is “collect at least N in one go” or “reach value N in one action” rather than “collect N total”.
+
+```lua
+["big_catch"] = {
+	tasks = { { action = "catch", object = "fish", required = 10 } },
+	use_max_task_value = true
+}
+-- quest.event("catch", "fish", 10) completes the task; quest.event("catch", "fish", 3) three times does not
+```

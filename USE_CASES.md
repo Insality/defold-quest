@@ -25,6 +25,39 @@ Here is full description of the quest config:
 ```
 
 
+## Core loop and on_quest_event queue
+
+**Flow:** Call `quest.init(quest_config_or_path)` to load config and register offline quests. When something happens in game (kill enemy, collect item), call `quest.event(action, object, amount)`. The module applies progress to matching tasks, handles autostart and autofinish, and pushes lifecycle events into `quest.on_quest_event` in order: `"register"` (quest registered), `"start"`, `"progress"`, `"task_completed"`, `"completed"`.
+
+**Queue behavior:** `quest.on_quest_event` is a [queue](https://github.com/Insality/defold-event/blob/main/api/queue_api.md). Events are pushed when they occur and stay in the queue until they are processed (delivered to subscribers). Nothing is dropped. So you can start the quest system and subscribe to `on_quest_event` early—for example in the **loader** step—and your UI (or other systems) will receive every event when the queue is processed, without missing any.
+
+**Event types and payload:** Subscribe with `quest.on_quest_event:subscribe(callback)`. The callback receives `event_data` with:
+
+| type              | quest_id | quest_config | delta | total | task_index |
+|-------------------|----------|--------------|-------|-------|------------|
+| `"register"`      | ✓        | ✓            | —     | —     | —          |
+| `"start"`         | ✓        | ✓            | —     | —     | —          |
+| `"progress"`      | ✓        | ✓            | ✓     | ✓     | ✓          |
+| `"task_completed"`| ✓        | ✓            | —     | —     | ✓          |
+| `"completed"`     | ✓        | ✓            | —     | —     | —          |
+
+```lua
+-- Subscribe in loader or before quest.init() so you never miss an event
+quest.on_quest_event:subscribe(function(event_data)
+	if event_data.type == "start" then
+		ui_quest_log:add_quest(event_data.quest_id, event_data.quest_config)
+	elseif event_data.type == "progress" then
+		ui_quest_log:update_progress(event_data.quest_id, event_data.task_index, event_data.total)
+	elseif event_data.type == "completed" then
+		ui_quest_log:mark_completed(event_data.quest_id)
+	end
+	return true
+end)
+
+quest.init(require("game.quests"))
+```
+
+
 ## Save Quest State
 
 You need to save the quest state and load it before the `quest.init` function.

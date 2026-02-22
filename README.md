@@ -25,6 +25,8 @@ Quest here is a set of tasks that player needs to complete the quest. Just trigg
 
 ### [Dependency](https://www.defold.com/manuals/libraries/)
 
+> Can be installed from the [Asset Store](https://github.com/Insality/asset-store) extension to skip this step.
+
 Open your `game.project` file and add the following line to the dependencies field under the project section:
 
 **[Defold Event](https://github.com/Insality/defold-event)**

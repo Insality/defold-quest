@@ -29,17 +29,17 @@ Here is full description of the quest config:
 
 **Flow:** Call `quest.init(quest_config_or_path)` to load config and register offline quests. When something happens in game (kill enemy, collect item), call `quest.event(action, object, amount)`. The module applies progress to matching tasks, handles autostart and autofinish, and pushes lifecycle events into `quest.on_quest_event` in order: `"register"` (quest registered), `"start"`, `"progress"`, `"task_completed"`, `"completed"`.
 
-**Queue behavior:** `quest.on_quest_event` is a [queue](https://github.com/Insality/defold-event/blob/main/api/queue_api.md). Events are pushed when they occur and stay in the queue until they are processed (delivered to subscribers). Nothing is dropped. So you can start the quest system and subscribe to `on_quest_event` early—for example in the **loader** step—and your UI (or other systems) will receive every event when the queue is processed, without missing any.
+**Queue behavior:** `quest.on_quest_event` is a [queue](https://github.com/Insality/defold-event/blob/main/api/queue_api.md). Events are pushed when they occur and stay in the queue until they are processed (delivered to subscribers). Nothing is dropped. So you can start the quest system and subscribe to `on_quest_event` early. For example in the **loader** step and your UI (or other systems) will receive every event when the queue is processed, without missing any.
 
 **Event types and payload:** Subscribe with `quest.on_quest_event:subscribe(callback)`. The callback receives `event_data` with:
 
 | type              | quest_id | quest_config | delta | total | task_index |
 |-------------------|----------|--------------|-------|-------|------------|
-| `"register"`      | ✓        | ✓            | —     | —     | —          |
-| `"start"`         | ✓        | ✓            | —     | —     | —          |
+| `"register"`      | ✓        | ✓            | -     | -     | -          |
+| `"start"`         | ✓        | ✓            | -     | -     | -          |
 | `"progress"`      | ✓        | ✓            | ✓     | ✓     | ✓          |
-| `"task_completed"`| ✓        | ✓            | —     | —     | ✓          |
-| `"completed"`     | ✓        | ✓            | —     | —     | —          |
+| `"task_completed"`| ✓        | ✓            | -     | -     | ✓          |
+| `"completed"`     | ✓        | ✓            | -     | -     | -          |
 
 ```lua
 -- Subscribe in loader or before quest.init() so you never miss an event
@@ -147,7 +147,7 @@ end)
 
 ## Add additional conditions to quest
 
-You can add additional conditions to quest by subscribing to the `quest.is_can_event`, `quest.is_can_start` and `quest.is_can_complete` events.
+Subscribe to `quest.is_can_event`, `quest.is_can_start` and `quest.is_can_complete`. Return `true` to allow, `false` to block.
 
 ```lua
 quest.is_can_event:subscribe(function(quest_id, quest_config)
@@ -168,7 +168,7 @@ end)
 
 Use `quest.start_quest(quest_id)` when the player accepts a quest (e.g. from an NPC). It returns `true` if the quest was started. Use `quest.complete_quest(quest_id)` when the player turns in a quest; it only completes if all tasks are done and any `is_can_complete` conditions pass.
 
-For autostart/autofinish quests you typically do not call these manually — the module starts and completes them in `quest.update_quests()`. Use `quest.force_complete_quest(quest_id)` to complete a quest without checking conditions (e.g. debug or scripted story moments).
+For autostart/autofinish quests you typically do not call these manually - the module starts and completes them in `quest.update_quests()`. Use `quest.force_complete_quest(quest_id)` to complete a quest without checking conditions (e.g. debug or scripted story moments).
 
 ```lua
 if quest.is_can_start_quest("hunt_wolves") then
@@ -186,7 +186,7 @@ end
 
 ## Using categories
 
-Set `category` in quest config to group quests (e.g. `"main"`, `"side"`, `"daily"`). Use it with the getters to build filtered UI or logic.
+Set `category` in quest config (e.g. `"main"`, `"side"`, `"daily"`). Use with the getters for filtered UI or logic.
 
 ```lua
 -- In quest config
@@ -202,7 +202,7 @@ local available_daily = quest.get_can_be_started("daily")
 
 ## Finding quests by task
 
-Use `quest.get_current_with_task(action, object)` to get active quest IDs that have a task matching the given action (and optionally object). Useful to adjust gameplay while a quest is active—e.g. boost loot, change dialogue, or spawn different enemies when the player has a matching quest.
+Use `quest.get_current_with_task(action, object)` to get active quest IDs that have a task matching the given action (and optionally object). Useful to adjust gameplay while a quest is active (e.g. boost loot, change dialogue, or spawn different enemies when the player has a matching quest).
 
 ```lua
 local quests_with_kill_enemy = quest.get_current_with_task("kill", "enemy")

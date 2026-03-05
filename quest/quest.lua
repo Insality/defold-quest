@@ -342,12 +342,13 @@ function M.get_current(category)
 
 	for quest_id, quest in pairs(quests) do
 		local is_category_match = true
+		local quest_config = config.get_quest_config(quest_id)
+
 		if category then
-			local quest_config = config.get_quest_config(quest_id)
 			is_category_match = quest_config and quest_config.category == category
 		end
 
-		if quest.is_active and is_category_match then
+		if quest_config and quest.is_active and is_category_match then
 			result[quest_id] = quest
 		end
 	end
@@ -501,7 +502,8 @@ function M.update_quests()
 	local current = state.get_state().current
 	local quests_data = config.get_quests_data()
 	for quest_id, quest in pairs(current) do
-		if quest.is_active and quests_data[quest_id].autofinish then
+		local quest_data = quests_data[quest_id]
+		if quest_data and quest.is_active and quest_data.autofinish then
 			if M.is_can_complete_quest(quest_id) then
 				lifecycle.finish_quest(quest_id)
 				should_continue = true
@@ -513,7 +515,7 @@ function M.update_quests()
 	local can_be_started = lifecycle.get_can_be_started()
 	for quest_id, _ in pairs(can_be_started) do
 		local quest = quests_data[quest_id]
-		if quest.autostart then
+		if quest and quest.autostart then
 			if M.is_can_start_quest(quest_id) then
 				lifecycle.start_quest(quest_id)
 				should_continue = true

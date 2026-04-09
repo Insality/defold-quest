@@ -46,7 +46,7 @@ function M.apply_event(quest_id, quest_progress, action, object, amount)
 			local delta = quest_progress.progress[task_index] - prev_value
 			quest_events.progress(quest_id, quest_config, delta, quest_progress.progress[task_index], task_index)
 
-			logger:debug("Quest progress updated", {
+			logger:debug("Quest progress", {
 				quest_id = quest_id,
 				task_index = task_index,
 				delta = delta,
@@ -56,7 +56,7 @@ function M.apply_event(quest_id, quest_progress, action, object, amount)
 			if quest_progress.progress[task_index] == required then
 				quest_events.task_completed(quest_id, quest_config, task_index)
 
-				logger:debug("Quest task completed", {
+				logger:debug("Task completed", {
 					quest_id = quest_id,
 					task_index = task_index
 				})
@@ -94,7 +94,7 @@ function M.process_event(action, object, amount, is_can_event_callback)
 		end
 	end
 
-	logger:debug("Quest event process", {
+	logger:debug("Event", {
 		action = action,
 		object = object ~= "" and object or nil,
 		amount = amount,

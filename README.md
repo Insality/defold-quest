@@ -35,10 +35,10 @@ Open your `game.project` file and add the following line to the dependencies fie
 https://github.com/Insality/defold-event/archive/refs/tags/14.zip
 ```
 
-**[Defold Quest](https://github.com/Insality/defold-quest/archive/refs/tags/3.zip)**
+**[Defold Quest](https://github.com/Insality/defold-quest/archive/refs/tags/4.zip)**
 
 ```
-https://github.com/Insality/defold-quest/archive/refs/tags/3.zip
+https://github.com/Insality/defold-quest/archive/refs/tags/4.zip
 ```
 
 After that, select `Project ▸ Fetch Libraries` to update [library dependencies]((https://defold.com/manuals/libraries/#setting-up-library-dependencies)). This happens automatically whenever you open a project so you will only need to do this if the dependencies change without re-opening the project.
@@ -129,6 +129,7 @@ quest.get_state()
 -- Initialize quest system
 quest.init([quest_config_or_path])
 quest.add_quests(quest_config_or_path)
+quest.remove_quests(quest_ids)
 
 -- Trigger quest event
 quest.event(action, [object], [amount])
@@ -197,7 +198,13 @@ For any issues, questions, or suggestions, please [create an issue](https://gith
 - Token integration, docs, annotations, refactor events
 
 ### **V3**
--- Refactor quest events, update docs
+- Refactor quest events, update docs
+
+### **V4**
+- **Breaking:** `quest.add_quests` adds quests to the current config instead of replacing it. Can be called any time to add quests to the running game
+- **Breaking:** `quest.reset_state` also clears the quests config
+- Add `quest.remove_quests(quest_ids)` to remove quests with their progress and completed marks
+- `quest.add_quests` and `quest.init` copy the passed config table instead of storing it
 
 </details>
 

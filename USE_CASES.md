@@ -257,3 +257,26 @@ By default, a task’s progress is the sum of all matching events. With `use_max
 }
 -- quest.event("catch", "fish", 10) completes the task; quest.event("catch", "fish", 3) three times does not
 ```
+
+
+## Temporary event quests
+
+Use `quest.add_quests(configs_by_id)` to add quests of a live event (weekly tasks, seasonal pass) to the running game. Other quests keep their config and progress. Use `quest.remove_quests(quest_ids)` when the event ends: it removes the configs, the progress and the completed marks in one call, so autostart does not start the quests again.
+
+The saved state keeps event quests progress, but configs are not saved. Add the same configs again after loading the state while the event is running.
+
+```lua
+local WEEK_QUESTS = {
+	["week_42:streaks"] = { autostart = true, autofinish = true, tasks = { { action = "streak_points", required = 5 } } },
+	["week_42:coins"] = { autostart = true, autofinish = true, tasks = { { action = "coins", required = 100 } } },
+}
+
+-- Event started (or game loaded while event is running)
+quest.add_quests(WEEK_QUESTS)
+
+-- One event updates both permanent and event quests
+quest.event("streak_points", nil, 1)
+
+-- Event finished, final reward is given
+quest.remove_quests({ "week_42:streaks", "week_42:coins" })
+```

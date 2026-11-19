@@ -33,6 +33,24 @@ function M.get_state()
 end
 
 
+---Remove quests progress and completed marks
+---@param quest_ids string[] Quest ids to remove
+function M.remove_quests(quest_ids)
+	local is_removed = {}
+	for index = 1, #quest_ids do
+		local quest_id = quest_ids[index]
+		is_removed[quest_id] = true
+		state.current[quest_id] = nil
+	end
+
+	for index = #state.completed, 1, -1 do
+		if is_removed[state.completed[index]] then
+			table.remove(state.completed, index)
+		end
+	end
+end
+
+
 ---Set external state (for loading saved state)
 ---@param external_state quest.state
 function M.set_state(external_state)

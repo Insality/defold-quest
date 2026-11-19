@@ -27,10 +27,10 @@ local M = {}
 local QUESTS_DATA = {}
 
 
----Load quest config from file or table
+---Add quests to existing configuration from file or table. Quests with the same id are replaced.
 ---@param config_or_path string|table<string, quest.config> Quest config or path to the config file
 ---@return boolean True if success
-function M.load_config(config_or_path)
+function M.add_quests(config_or_path)
 	if type(config_or_path) == "string" then
 		local config = utils.load_json(config_or_path)
 		if not config then
@@ -41,18 +41,26 @@ function M.load_config(config_or_path)
 		config_or_path = config
 	end
 
-	QUESTS_DATA = config_or_path
+	for quest_id, quest_config in pairs(config_or_path) do
+		QUESTS_DATA[quest_id] = quest_config
+	end
 
 	return true
 end
 
 
----Add quests to existing configuration
----@param config table<string, quest.config> Additional quest configs
-function M.add_quests(config)
-	for quest_id, quest_config in pairs(config) do
-		QUESTS_DATA[quest_id] = quest_config
+---Remove quests from existing configuration
+---@param quest_ids string[] Quest ids to remove
+function M.remove_quests(quest_ids)
+	for index = 1, #quest_ids do
+		QUESTS_DATA[quest_ids[index]] = nil
 	end
+end
+
+
+---Remove all quests from configuration
+function M.reset_state()
+	QUESTS_DATA = {}
 end
 
 

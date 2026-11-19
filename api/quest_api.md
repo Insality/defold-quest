@@ -8,6 +8,7 @@
 - [get_state](#get_state)
 - [init](#init)
 - [add_quests](#add_quests)
+- [remove_quests](#remove_quests)
 - [event](#event)
 - [add_task_progress](#add_task_progress)
 - [is_active](#is_active)
@@ -92,7 +93,9 @@ quest.init("/resources/quests.json")
 quest.add_quests(quest_config_or_path)
 ```
 
-Add quests to the system from config file or table
+Add quests to the current config from config file or table. Can be called any time.
+Other quests and their progress are kept. Quests with the same id are replaced.
+Quest configs are not saved: add the same quests again after loading the state.
 
 - **Parameters:**
 	- `quest_config_or_path` *(string|table<string, quest.config>)*: Lua table or path to quest config. Example: "/resources/quests.json"
@@ -102,6 +105,25 @@ Add quests to the system from config file or table
 ```lua
 quest.add_quests(require("game.quests"))
 quest.add_quests("/resources/quests.json")
+quest.add_quests({ ["week_42:streaks"] = { autostart = true, tasks = { { action = "streak_points", required = 5 } } } })
+```
+### remove_quests
+
+---
+```lua
+quest.remove_quests(quest_ids)
+```
+
+Remove quests from config together with their progress and completed marks.
+Removed quests are not started again by autostart. Unknown ids only clear their saved state.
+
+- **Parameters:**
+	- `quest_ids` *(string[])*: Quest ids to remove
+
+- **Example Usage:**
+
+```lua
+quest.remove_quests({ "week_42:streaks", "week_42:coins" })
 ```
 ### event
 
@@ -427,7 +449,7 @@ Customize the logging mechanism used by Quest Module. You can use **Defold Log**
 quest.reset_state()
 ```
 
-Reset Module quest state, probably you want to use it only in case of soft game reload
+Reset Module quest state and quests config, probably you want to use it only in case of soft game reload
 
 ### get_quests_data
 

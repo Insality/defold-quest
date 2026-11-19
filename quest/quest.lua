@@ -86,18 +86,29 @@ function M.init(quest_config_or_path)
 end
 
 
----Add quests to the system from config file or table
+---Add quests to the current config from config file or table. Can be called any time.
+---Other quests and their progress are kept. Quests with the same id are replaced.
+---Quest configs are not saved: add the same quests again after loading the state.
 ---		quest.add_quests(require("game.quests"))
 ---		quest.add_quests("/resources/quests.json")
+---		quest.add_quests({ ["week_42:streaks"] = { autostart = true, tasks = { { action = "streak_points", required = 5 } } } })
 ---@param quest_config_or_path table<string, quest.config>|string Lua table or path to quest config. Example: "/resources/quests.json"
 function M.add_quests(quest_config_or_path)
-	config.load_config(quest_config_or_path)
-	M.postprocess_quest_state()
+	config.add_quests(quest_config_or_path)
+	M.apply_config_changes()
+end
 
-	lifecycle.set_quest_relative_map(lifecycle.make_relative_quests_map())
-	lifecycle.create_can_be_started_list()
-	lifecycle.register_offline_quests()
-	M.update_quests()
+
+---Remove quests from config together with their progress and completed marks.
+---Removed quests are not started again by autostart. Unknown ids only clear their saved state.
+---		quest.remove_quests({ "week_42:streaks", "week_42:coins" })
+---@param quest_ids string[] Quest ids to remove
+function M.remove_quests(quest_ids)
+	config.remove_quests(quest_ids)
+	state.remove_quests(quest_ids)
+	M.apply_config_changes()
+
+	logger:debug("Quests removed", #quest_ids)
 end
 
 
@@ -464,9 +475,10 @@ function M.set_logger(logger_instance)
 end
 
 
----Reset Module quest state, probably you want to use it only in case of soft game reload
+---Reset Module quest state and quests config, probably you want to use it only in case of soft game reload
 function M.reset_state()
 	state.reset_state()
+	config.reset_state()
 	lifecycle.reset_runtime_state()
 	quest_events.reset_state()
 end
@@ -527,6 +539,18 @@ function M.update_quests()
 	if should_continue then
 		M.update_quests()
 	end
+end
+
+
+---Rebuild runtime quest lists after quests config change and process autostart and autofinish quests
+---@private
+function M.apply_config_changes()
+	M.postprocess_quest_state()
+
+	lifecycle.set_quest_relative_map(lifecycle.make_relative_quests_map())
+	lifecycle.create_can_be_started_list()
+	lifecycle.register_offline_quests()
+	M.update_quests()
 end
 
 
